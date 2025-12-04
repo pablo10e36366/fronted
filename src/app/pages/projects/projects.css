@@ -1,0 +1,54 @@
+.projects-container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 16px;
+  background: #f7f7f7;
+  border-radius: 8px;
+}
+
+.project-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.project-form label {
+  font-weight: 600;
+}
+
+.project-form input,
+.project-form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.project-form button {
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  background: #1976d2;
+  color: white;
+  cursor: pointer;
+}
+
+.project-form button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.projects-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.projects-table th,
+.projects-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.projects-table th {
+  background: #e0e0e0;
+}

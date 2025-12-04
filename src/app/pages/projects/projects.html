@@ -1,0 +1,78 @@
+<div class="projects-container">
+  <h2>Mis proyectos</h2>
+
+  <!-- FORMULARIO PARA SUBIR PROYECTO -->
+  <form (ngSubmit)="uploadProject()" #projectForm="ngForm" class="project-form">
+    <div>
+      <label for="title">Título</label>
+      <input
+        id="title"
+        type="text"
+        name="title"
+        [(ngModel)]="title"
+        required
+      />
+    </div>
+
+    <div>
+      <label for="description">Descripción</label>
+      <textarea
+        id="description"
+        name="description"
+        [(ngModel)]="description"
+      ></textarea>
+    </div>
+
+    <div>
+      <label for="file">Archivo</label>
+      <input id="file" type="file" (change)="onFileSelected($event)" />
+    </div>
+
+    <button
+      type="submit"
+      [disabled]="loading || !projectForm.form.valid || !selectedFile"
+    >
+      {{ loading ? 'Subiendo...' : 'Subir proyecto' }}
+    </button>
+
+    <p *ngIf="errorMessage" style="color: red">{{ errorMessage }}</p>
+    <p *ngIf="successMessage" style="color: green">{{ successMessage }}</p>
+  </form>
+
+  <hr />
+
+  <!-- LISTADO DE PROYECTOS -->
+  <h3>Lista de proyectos</h3>
+
+  <table *ngIf="projects.length > 0; else noProjects" class="projects-table">
+    <thead>
+      <tr>
+        <th>Título</th>
+        <th>Descripción</th>
+        <th>Estado</th>
+        <th>Fecha</th>
+        <th>Archivo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let project of projects">
+        <td>{{ project.title }}</td>
+        <td>{{ project.description }}</td>
+        <td>{{ project.status || '—' }}</td>
+        <td>
+          {{
+            (project.createdAt || project.created_at)
+              | date : 'short'
+          }}
+        </td>
+        <td>
+          <button (click)="downloadProject(project.id)">Descargar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #noProjects>
+    <p>No tienes proyectos registrados todavía.</p>
+  </ng-template>
+</div>
