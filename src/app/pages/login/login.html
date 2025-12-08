@@ -1,33 +1,47 @@
-<div class="login-container">
-  <h2>Iniciar sesión</h2>
+<div class="login-page">
 
-  <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
-    <div>
-      <label for="username">Usuario</label>
-      <input
-        id="username"
-        type="text"
-        name="username"
-        [(ngModel)]="username"
-        required
-      />
-    </div>
+  <div class="login-card">
 
-    <div>
-      <label for="password">Contraseña</label>
-      <input
-        id="password"
-        type="password"
-        name="password"
-        [(ngModel)]="password"
-        required
-      />
-    </div>
+    <h1 class="title">Iniciar sesión</h1>
+    <p class="subtitle">Ingresa con tu cuenta para continuar</p>
 
-    <button type="submit" [disabled]="loginForm.invalid || loading">
-      {{ loading ? 'Ingresando...' : 'Ingresar' }}
-    </button>
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
 
-    <p *ngIf="errorMessage" style="color: red">{{ errorMessage }}</p>
-  </form>
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          required
+          placeholder="ejemplo@correo.com"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          required
+          placeholder="********"
+        />
+      </div>
+
+      <button type="submit" class="btn-login" [disabled]="loading">
+        <span *ngIf="!loading">Ingresar</span>
+        <span *ngIf="loading">Verificando...</span>
+      </button>
+
+      <p *ngIf="errorMessage" class="alert error">{{ errorMessage }}</p>
+
+    </form>
+
+    <p class="hint">
+      ¿No tienes cuenta? Pídele a un administrador que te registre.
+    </p>
+
+  </div>
+
 </div>

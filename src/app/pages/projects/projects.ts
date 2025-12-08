@@ -21,79 +21,59 @@ export class ProjectsComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
 
-  constructor(private projectService: ProjectService) {}
+  constructor(private projectsService: ProjectService) {}
 
   ngOnInit(): void {
     this.loadProjects();
   }
 
-  loadProjects() {
-    this.projectService.getMyProjects().subscribe({
-      next: (data) => {
-        this.projects = data;
+  loadProjects(): void {
+    this.projectsService.getMyProjects().subscribe({
+      next: (projects) => {
+        this.projects = projects;
       },
-      error: (err) => {
-        console.error(err);
-        this.errorMessage = 'Error al cargar los proyectos';
+      error: () => {
+        this.errorMessage = 'Error al cargar proyectos';
       },
     });
   }
 
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-    }
+  onFileChange(event: any): void {
+    const file = event.target.files[0];
+    this.selectedFile = file ?? null;
   }
 
-  uploadProject() {
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    if (!this.selectedFile) {
-      this.errorMessage = 'Selecciona un archivo primero';
+  onSubmit(): void {
+    if (!this.selectedFile || !this.title.trim()) {
+      this.errorMessage = 'Título y archivo son obligatorios';
       return;
     }
 
     this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
 
-    this.projectService
+    this.projectsService
       .uploadProject(this.title, this.description, this.selectedFile)
       .subscribe({
-        next: (project) => {
-          this.loading = false;
+        next: () => {
           this.successMessage = 'Proyecto subido correctamente';
-
-          // limpiar formulario
           this.title = '';
           this.description = '';
           this.selectedFile = null;
+          this.loading = false;
 
-          // agregar el proyecto nuevo al inicio de la tabla
-          this.projects.unshift(project);
+          // Recargar lista
+          this.loadProjects();
         },
-        error: (err) => {
-          console.error(err);
+        error: () => {
           this.loading = false;
           this.errorMessage = 'Error al subir el proyecto';
         },
       });
   }
 
-  downloadProject(id: number) {
-    this.projectService.downloadProjectFile(id).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `proyecto-${id}`; // puedes cambiar el nombre si tu backend manda filename
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: (err) => {
-        console.error(err);
-        alert('Error al descargar el archivo');
-      },
-    });
+  downloadProject(id: number): void {
+    this.projectsService.downloadProjectFile(id);
   }
 }

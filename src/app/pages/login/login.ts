@@ -12,27 +12,30 @@ import { AuthService } from '../../services/auth';
   imports: [CommonModule, FormsModule],
 })
 export class LoginComponent {
-  username = '';
+  email = '';
   password = '';
-  loading = false;
   errorMessage = '';
+  loading = false;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   onSubmit() {
-    this.errorMessage = '';
-    this.loading = true;
+    if (!this.email.trim() || !this.password.trim()) {
+      this.errorMessage = 'Complete todos los campos';
+      return;
+    }
 
-    this.auth.login(this.username, this.password).subscribe({
+    this.loading = true;
+    this.errorMessage = '';
+
+    this.authService.login(this.email, this.password).subscribe({
       next: () => {
         this.loading = false;
-        // si todo bien, ir a proyectos
         this.router.navigate(['/projects']);
       },
-      error: (err) => {
-        console.error(err);
+      error: () => {
         this.loading = false;
-        this.errorMessage = 'Usuario o contraseña incorrectos';
+        this.errorMessage = 'Correo o contraseña incorrectos';
       },
     });
   }

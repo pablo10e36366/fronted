@@ -6,7 +6,7 @@ import { Observable, tap } from 'rxjs';
   providedIn: 'root',
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000'; // backend Nest
+  private apiUrl = 'https://promanage-backend-production.up.railway.app';// backend Nest
 
   constructor(private http: HttpClient) {}
 

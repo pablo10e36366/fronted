@@ -1,78 +1,133 @@
-<div class="projects-container">
-  <h2>Mis proyectos</h2>
+<div class="projects-page">
 
-  <!-- FORMULARIO PARA SUBIR PROYECTO -->
-  <form (ngSubmit)="uploadProject()" #projectForm="ngForm" class="project-form">
+  <!-- ENCABEZADO -->
+  <header class="projects-header">
     <div>
-      <label for="title">Título</label>
-      <input
-        id="title"
-        type="text"
-        name="title"
-        [(ngModel)]="title"
-        required
-      />
+      <h1>Mis proyectos</h1>
+      <p class="subtitle">Sube tus documentos al repositorio y consulta tu historial.</p>
     </div>
-
-    <div>
-      <label for="description">Descripción</label>
-      <textarea
-        id="description"
-        name="description"
-        [(ngModel)]="description"
-      ></textarea>
+    <div class="badge-counter">
+      <span class="badge-label">Total proyectos</span>
+      <span class="badge-number">{{ projects.length }}</span>
     </div>
+  </header>
 
-    <div>
-      <label for="file">Archivo</label>
-      <input id="file" type="file" (change)="onFileSelected($event)" />
-    </div>
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="content-grid">
 
-    <button
-      type="submit"
-      [disabled]="loading || !projectForm.form.valid || !selectedFile"
-    >
-      {{ loading ? 'Subiendo...' : 'Subir proyecto' }}
-    </button>
+    <!-- CARD FORMULARIO -->
+    <section class="card form-card">
+      <h2 class="card-title">Nuevo proyecto</h2>
+      <p class="card-subtitle">Completa los datos y adjunta el archivo a subir.</p>
 
-    <p *ngIf="errorMessage" style="color: red">{{ errorMessage }}</p>
-    <p *ngIf="successMessage" style="color: green">{{ successMessage }}</p>
-  </form>
+      <form (ngSubmit)="onSubmit()" #projectForm="ngForm" novalidate>
+        <div class="form-group">
+          <label>Título <span>*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="title"
+            name="title"
+            required
+            placeholder="Ej. Informe semana 10"
+          />
+        </div>
 
-  <hr />
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea
+            [(ngModel)]="description"
+            name="description"
+            rows="3"
+            placeholder="Breve descripción del proyecto"
+          ></textarea>
+        </div>
 
-  <!-- LISTADO DE PROYECTOS -->
-  <h3>Lista de proyectos</h3>
+        <div class="form-group">
+          <label>Archivo <span>*</span></label>
+          <div class="file-input-wrapper">
+            <input
+              type="file"
+              id="project-file"
+              (change)="onFileChange($event)"
+            />
+          </div>
+          <small class="help-text">Formatos recomendados: PDF, DOCX, PPTX, ZIP.</small>
+        </div>
 
-  <table *ngIf="projects.length > 0; else noProjects" class="projects-table">
-    <thead>
-      <tr>
-        <th>Título</th>
-        <th>Descripción</th>
-        <th>Estado</th>
-        <th>Fecha</th>
-        <th>Archivo</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let project of projects">
-        <td>{{ project.title }}</td>
-        <td>{{ project.description }}</td>
-        <td>{{ project.status || '—' }}</td>
-        <td>
-          {{
-            (project.createdAt || project.created_at)
-              | date : 'short'
-          }}
-        </td>
-        <td>
-          <button (click)="downloadProject(project.id)">Descargar</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <button
+          type="submit"
+          class="btn-primary"
+          [class.loading]="loading"
+          [disabled]="loading"
+        >
+          <span *ngIf="!loading">Subir proyecto</span>
+          <span *ngIf="loading">Subiendo...</span>
+        </button>
 
-  <ng-template #noProjects>
-    <p>No tienes proyectos registrados todavía.</p>
-  </ng-template>
+        <p *ngIf="errorMessage" class="alert error">{{ errorMessage }}</p>
+        <p *ngIf="successMessage" class="alert success">{{ successMessage }}</p>
+      </form>
+    </section>
+
+    <!-- CARD LISTA -->
+    <section class="card table-card">
+      <div class="table-header">
+        <h2 class="card-title">Lista de proyectos</h2>
+      </div>
+
+      <ng-container *ngIf="projects.length > 0; else noProjects">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th class="th-actions">Archivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let project of projects">
+                <td class="cell-title">
+                  <span class="title-text">{{ project.title }}</span>
+                </td>
+                <td>{{ project.description || '—' }}</td>
+                <td>
+                  <span
+                    class="status-pill"
+                    [ngClass]="{
+                      'status-active': project.status === 'activo',
+                      'status-completed': project.status === 'completado',
+                      'status-archived': project.status === 'archivado'
+                    }"
+                  >
+                    {{ project.status || '—' }}
+                  </span>
+                </td>
+                <td>{{ project.created_at | date: 'short' }}</td>
+                <td class="td-actions">
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    (click)="downloadProject(project.id)"
+                  >
+                    Descargar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+
+      <ng-template #noProjects>
+        <div class="empty-state">
+          <p>Aún no has subido proyectos.</p>
+          <span>Empieza creando uno desde el formulario de la izquierda.</span>
+        </div>
+      </ng-template>
+    </section>
+
+  </div>
 </div>
