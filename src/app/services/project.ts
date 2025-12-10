@@ -16,7 +16,7 @@ export interface Project {
   providedIn: 'root',
 })
 export class ProjectService {
-  private apiUrl = 'http://localhost:3000'; // cambia si tu backend usa otro puerto
+  private apiUrl = 'https://promanage-backend-production.up.railway.app'; // misma api de railway
 
   constructor(private http: HttpClient) {}
 
