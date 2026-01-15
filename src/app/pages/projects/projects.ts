@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProjectService, Project } from '../../services/project';
+
+import { ProjectService } from '../../services/project';
+import { ProjectDto } from '../../core/models/project.models';
 
 @Component({
   standalone: true,
@@ -11,12 +13,15 @@ import { ProjectService, Project } from '../../services/project';
   imports: [CommonModule, FormsModule],
 })
 export class ProjectsComponent implements OnInit {
-  projects: Project[] = [];
+  // 🔹 LISTA DE PROYECTOS (TIPADA)
+  projects: ProjectDto[] = [];
 
+  // 🔹 FORMULARIO
   title = '';
   description = '';
   selectedFile: File | null = null;
 
+  // 🔹 ESTADOS UI
   loading = false;
   errorMessage = '';
   successMessage = '';
@@ -27,24 +32,31 @@ export class ProjectsComponent implements OnInit {
     this.loadProjects();
   }
 
+  // 🔹 CARGAR PROYECTOS
   loadProjects(): void {
     this.projectsService.getMyProjects().subscribe({
       next: (projects) => {
         this.projects = projects;
       },
-      error: () => {
-        this.errorMessage = 'Error al cargar proyectos';
+      error: (err) => {
+        this.errorMessage = err?.message || 'Error al cargar proyectos';
       },
     });
   }
 
-  onFileChange(event: any): void {
-    const file = event.target.files[0];
-    this.selectedFile = file ?? null;
+  // 🔹 CAMBIO DE ARCHIVO
+  onFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+    } else {
+      this.selectedFile = null;
+    }
   }
 
+  // 🔹 SUBIR PROYECTO
   onSubmit(): void {
-    if (!this.selectedFile || !this.title.trim()) {
+    if (!this.title.trim() || !this.selectedFile) {
       this.errorMessage = 'Título y archivo son obligatorios';
       return;
     }
@@ -62,18 +74,29 @@ export class ProjectsComponent implements OnInit {
           this.description = '';
           this.selectedFile = null;
           this.loading = false;
-
-          // Recargar lista
-          this.loadProjects();
+          this.loadProjects(); // recargar lista
         },
-        error: () => {
+        error: (err) => {
           this.loading = false;
-          this.errorMessage = 'Error al subir el proyecto';
+          this.errorMessage = err?.message || 'Error al subir el proyecto';
         },
       });
   }
 
-  downloadProject(id: number): void {
-    this.projectsService.downloadProjectFile(id);
+  // 🔹 DESCARGAR ARCHIVO
+  downloadProject(projectId: number): void {
+    this.projectsService.downloadProjectFile(projectId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'archivo';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.errorMessage = err?.message || 'Error al descargar el archivo';
+      },
+    });
   }
 }

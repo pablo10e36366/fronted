@@ -1,50 +1,47 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { API_ROUTES } from '../core/api.routes';
+import {
+  JwtUserPayload,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+} from '../core/models/auth.models';
+import { decodeJwtPayload } from '../core/utils/jwt.utils';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'https://promanage-backend-production.up.railway.app';// backend Nest
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
-  // 👇 LOGIN SOLO CON CORREO
-  login(email: string, password: string): Observable<any> {
+  login(email: string, password: string): Observable<LoginResponse> {
+    const body: LoginRequest = { email, password };
+
     return this.http
-      .post<any>(`${this.apiUrl}/auth/login`, { email, password })
+      .post<LoginResponse>(`${this.apiUrl}${API_ROUTES.auth.login}`, body)
       .pipe(
         tap((res) => {
           if (typeof window !== 'undefined') {
-            // el backend devuelve { access_token: '...' }
             localStorage.setItem('token', res.access_token);
           }
         })
       );
   }
 
-  // 👇 REGISTER (nombre, correo, contraseña)
   register(name: string, email: string, password: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/auth/register`, {
-      name,
-      email,
-      password,
-      // si tu backend acepta role opcional puedes añadirlo aquí:
-      // role: 'usuario'
-    });
+    const body: RegisterRequest = { name, email, password };
+    return this.http.post(`${this.apiUrl}${API_ROUTES.auth.register}`, body);
   }
 
-  logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-    }
+  logout(): void {
+    if (typeof window !== 'undefined') localStorage.removeItem('token');
   }
 
   getToken(): string | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('token');
   }
 
@@ -52,17 +49,10 @@ export class AuthService {
     return !!this.getToken();
   }
 
-  getUserFromToken(): any | null {
+  getUserFromToken(): JwtUserPayload | null {
     const token = this.getToken();
     if (!token) return null;
-
-    try {
-      const payloadBase64 = token.split('.')[1];
-      const payloadJson = atob(payloadBase64);
-      return JSON.parse(payloadJson);
-    } catch {
-      return null;
-    }
+    return decodeJwtPayload(token);
   }
 
   getRole(): string | null {
