@@ -1,0 +1,82 @@
+<div class="courses-page">
+  <header class="page-header">
+    <h1 class="page-title">Mis Cursos</h1>
+    <button class="btn btn-primary" type="button" (click)="openCreateModal()">+ Crear Curso</button>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando cursos...</div>
+
+  <div class="courses-list">
+    <app-course-card
+      *ngFor="let course of courses"
+      [course]="course"
+      [canDelete]="true"
+      (deleteCourse)="requestDeleteCourse($event)"
+      class="course-card"></app-course-card>
+  </div>
+
+  <div class="empty" *ngIf="!loading && !courses.length">
+    <p>No tienes cursos aún. Crea el primero con “+ Crear Curso”.</p>
+  </div>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn prev" type="button" (click)="goToPage(page - 1)" [disabled]="page <= 1">←</button>
+    <span class="page-info">{{ page }} / {{ totalPages }}</span>
+    <button class="page-btn next" type="button" (click)="goToPage(page + 1)" [disabled]="page >= totalPages">→</button>
+  </div>
+</div>
+
+<!-- Modal Crear Curso -->
+<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Crear curso</h2>
+      <button class="icon-close" type="button" (click)="closeCreateModal()" [disabled]="creating">×</button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field">
+        <span>Título *</span>
+        <input [(ngModel)]="newTitle" placeholder="Ej. Desarrollo Web" />
+      </label>
+
+      <label class="field">
+        <span>Descripción</span>
+        <textarea [(ngModel)]="newDescription" placeholder="Breve descripción del curso..."></textarea>
+      </label>
+
+      <div class="modal-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" (click)="closeCreateModal()" [disabled]="creating">Cancelar</button>
+      <button class="btn btn-primary" type="button" (click)="createCourse()" [disabled]="creating">
+        {{ creating ? 'Creando...' : 'Crear' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar Curso -->
+<div class="modal-backdrop" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Eliminar curso</h2>
+      <button class="icon-close" type="button" (click)="closeDeleteModal()" [disabled]="deleting">×</button>
+    </div>
+
+    <div class="modal-body">
+      <p>Vas a eliminar el curso <strong>{{ courseToDelete?.title }}</strong>.</p>
+      <p>Esta acción no se puede deshacer.</p>
+      <div class="modal-error" *ngIf="deleteErrorMessage">{{ deleteErrorMessage }}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" (click)="closeDeleteModal()" [disabled]="deleting">Cancelar</button>
+      <button class="btn btn-danger" type="button" (click)="confirmDeleteCourse()" [disabled]="deleting">
+        {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+      </button>
+    </div>
+  </div>
+</div>

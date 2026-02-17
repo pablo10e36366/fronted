@@ -1,0 +1,51 @@
+<div class="dashboard-page">
+  <header class="page-header">
+    <h1 class="page-title">Inicio</h1>
+    <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+
+  <section class="summary" *ngIf="!loading">
+    <div class="summary-card">
+      <div class="summary-label">Pendientes</div>
+      <div class="summary-value">{{ pendingTotal }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Atrasadas</div>
+      <div class="summary-value">{{ overdueTotal }}</div>
+    </div>
+  </section>
+
+  <section class="grid" *ngIf="!loading">
+    <div class="card">
+      <div class="card-header">
+        <h2>Pendientes</h2>
+        <span class="muted small">Entregas por completar</span>
+      </div>
+
+      <div class="card-body" *ngIf="pendingItems.length; else emptyPending">
+        <a
+          class="item"
+          *ngFor="let it of pendingItems"
+          [routerLink]="['/entregas']"
+          [queryParams]="{ course_id: it.course_id }">
+          <div class="item-title">{{ it.milestone_title || 'Actividad' }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name || 'Curso' }}</span>
+            <span class="dot" *ngIf="it.due_at">·</span>
+            <span class="meta" *ngIf="it.due_at">Vence: {{ it.due_at | date:'short' }}</span>
+            <span class="dot">·</span>
+            <span class="meta">{{ itemStatusLabel(it) }}</span>
+          </div>
+        </a>
+      </div>
+
+      <ng-template #emptyPending>
+        <div class="empty">Sin pendientes por ahora.</div>
+      </ng-template>
+    </div>
+  </section>
+</div>
+

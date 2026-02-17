@@ -1,0 +1,182 @@
+<div class="activities-page" >
+  <header class="page-header">
+    <div class="header-left">
+      <button class="btn btn-secondary" type="button" (click)="backToCourse()">&larr; Volver al curso</button>
+      <div>
+        <h1>Actividades</h1>
+        <p class="muted" *ngIf="courseId">{{ courseTitle || 'Curso' }} &bull; {{ courseId }}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="empty" *ngIf="!courseId">
+    <p>Selecciona un curso para crear actividades.</p>
+  </div>
+
+  <section class="card activity-builder" *ngIf="courseId">
+    <div class="builder-header">
+      <div>
+        <h2>Publicar actividad</h2>
+        <p class="muted small">
+          Este espacio est&aacute; dedicado a la carga de actividades por parte del docente.
+        </p>
+      </div>
+    </div>
+
+    <div class="state-banner info" *ngIf="activitySaving">Publicando actividad...</div>
+    <div class="state-banner" *ngIf="activityError">{{ activityError }}</div>
+    <div class="state-banner info" *ngIf="activitySuccess">{{ activitySuccess }}</div>
+
+    <form class="builder-form" (ngSubmit)="createActivity()">
+      <div class="form-grid">
+        <label class="field">
+          <span class="label">Tipo</span>
+          <select class="input" name="activityType" [(ngModel)]="activityType">
+            <option value="LESSON">Lecci&oacute;n</option>
+            <option value="TASK">Tarea</option>
+            <option value="FILE">Archivo</option>
+            <option value="PAGE">P&aacute;gina</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="label">
+            Nombre <span class="required">*</span>
+          </span>
+          <input
+            class="input"
+            name="activityTitle"
+            [(ngModel)]="activityTitle"
+            placeholder="Ej. Casos de uso"
+            required />
+        </label>
+
+        <label class="field">
+          <span class="label">Fecha l&iacute;mite (opcional)</span>
+          <input
+            class="input"
+            type="datetime-local"
+            name="activityDeadlineLocal"
+            [(ngModel)]="activityDeadlineLocal" />
+        </label>
+      </div>
+
+      <div class="field">
+        <span class="label">Descripci&oacute;n</span>
+
+        <div class="rich-editor">
+          <div class="toolbar">
+            <button
+              type="button"
+              class="tool"
+              (mousedown)="$event.preventDefault()"
+              (click)="format('bold')">
+              <strong>B</strong>
+            </button>
+            <button
+              type="button"
+              class="tool"
+              (mousedown)="$event.preventDefault()"
+              (click)="format('italic')">
+              <em>I</em>
+            </button>
+            <button
+              type="button"
+              class="tool"
+              (mousedown)="$event.preventDefault()"
+              (click)="addLink()">
+              Enlace
+            </button>
+            <button
+              type="button"
+              class="tool"
+              (mousedown)="$event.preventDefault()"
+              (click)="triggerImagePicker()">
+              Imagen
+            </button>
+          </div>
+
+          <div
+            #activityEditor
+            class="editor"
+            contenteditable="true"
+            (input)="onEditorInput()"
+            data-placeholder="Escribe la descripci&oacute;n... Puedes pegar enlaces e insertar im&aacute;genes.">
+          </div>
+
+          <input #imageInput type="file" accept="image/*" hidden (change)="onImagePicked($event)" />
+        </div>
+      </div>
+
+      <div class="field" *ngIf="activityType === 'FILE'">
+        <span class="label">Archivo para estudiantes <span class="required">*</span></span>
+        <app-file-upload-zone
+          [compact]="true"
+          acceptedTypes="*/*"
+          labelStrong="Suelta el archivo aqu&iacute;"
+          labelSub="o haz clic para seleccionarlo"
+          hintText="Se publicar&aacute; dentro de la actividad"
+          (fileSelected)="onActivityFileSelected($event)">
+        </app-file-upload-zone>
+      </div>
+
+      <div class="builder-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="activitySaving">Publicar</button>
+        <button
+          class="btn btn-secondary"
+          type="button"
+          (click)="resetActivityBuilder()"
+          [disabled]="activitySaving">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card course-feed" *ngIf="courseId">
+    <div class="builder-header">
+      <div>
+        <h2>Actividad del curso</h2>
+        <p class="muted small">Timeline unificado de eventos del curso.</p>
+      </div>
+    </div>
+
+    <div class="state-banner info" *ngIf="feedLoading && !feedEvents.length">Cargando actividad...</div>
+    <div class="state-banner" *ngIf="feedError">{{ feedError }}</div>
+
+    <div class="empty" *ngIf="!feedLoading && !feedEvents.length && !feedError">
+      <p>Aún no hay actividad registrada.</p>
+    </div>
+
+    <div class="feed-list" *ngIf="feedEvents.length">
+      <div class="feed-item" *ngFor="let ev of feedEvents">
+        <div class="feed-head">
+          <div class="feed-title">{{ ev.title || ev.type }}</div>
+          <button
+            *ngIf="canDeleteActivity(ev)"
+            class="btn btn-danger btn-sm"
+            type="button"
+            (click)="deleteActivity(ev)"
+            [disabled]="isDeletingActivity(ev)">
+            {{ isDeletingActivity(ev) ? 'Eliminando...' : 'Eliminar actividad' }}
+          </button>
+        </div>
+        <div class="feed-meta">
+          <span class="meta">{{ ev.actor_name || ev.actor_type }}</span>
+          <span class="dot">•</span>
+          <span class="meta">{{ ev.created_at ? (ev.created_at | date:'short') : '' }}</span>
+        </div>
+      </div>
+
+      <div class="feed-actions">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          (click)="loadMoreFeed()"
+          [disabled]="feedLoading || feedEvents.length >= feedTotal">
+          {{ feedEvents.length >= feedTotal ? 'Sin más eventos' : (feedLoading ? 'Cargando...' : 'Cargar más') }}
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

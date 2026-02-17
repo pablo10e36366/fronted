@@ -5,6 +5,13 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token?: string;
+  user?: {
+    sub?: number;
+    email?: string;
+    name?: string;
+    role?: string;
+  };
 }
 
 export interface RegisterRequest {

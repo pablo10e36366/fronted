@@ -1,0 +1,128 @@
+<div class="activities-page">
+  <header class="page-header">
+    <div>
+      <h1>Actividades</h1>
+      <p class="muted">Actividades del curso</p>
+    </div>
+    <a class="btn btn-secondary" [routerLink]="['/projects', courseId]">Abrir curso</a>
+  </header>
+
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <section class="card" *ngIf="!loading">
+    <table class="table" *ngIf="items.length; else emptyList">
+      <thead>
+        <tr>
+          <th>Actividad</th>
+          <th>Estado</th>
+          <th>Vence</th>
+          <th>Archivo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let it of items"
+          [attr.id]="it.milestone_id ? ('milestone-' + it.milestone_id) : null"
+          [class.highlight-row]="isSelectedMilestone(it)"
+          [class.active-row]="selectedAssignmentId === it.id">
+          <td>{{ it.milestone_title || 'Actividad' }}</td>
+          <td>
+            <span class="status" [attr.data-status]="it.status">{{ statusLabel(it) }}</span>
+            <span class="late" *ngIf="it.is_late">Tarde</span>
+          </td>
+          <td>{{ it.due_at ? (it.due_at | date:'short') : '—' }}</td>
+          <td>{{ it.evidence_title || '—' }}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" type="button" (click)="selectAssignment(it)">
+              {{ selectedAssignmentId === it.id ? 'Seleccionada' : 'Responder' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyList>
+      <div class="empty">No hay actividades registradas todavía.</div>
+    </ng-template>
+  </section>
+
+  <section class="card submission-card" *ngIf="selectedAssignment as current">
+    <div class="submission-header">
+      <div>
+        <h2>Entregar actividad</h2>
+        <p class="muted">
+          {{ current.milestone_title || 'Actividad' }}
+          <span *ngIf="current.due_at">• vence {{ current.due_at | date:'short' }}</span>
+        </p>
+      </div>
+      <span class="status" [attr.data-status]="current.status">{{ statusLabel(current) }}</span>
+    </div>
+
+    <div class="state-banner" *ngIf="current.review_outcome === 'CHANGES_REQUESTED' && current.feedback">
+      <strong>Cambios solicitados:</strong> {{ current.feedback }}
+    </div>
+
+    <div class="state-banner info" *ngIf="current.review_outcome === 'APPROVED' && current.feedback">
+      <strong>Entrega aprobada:</strong> {{ current.feedback }}
+    </div>
+
+    <div class="state-banner" *ngIf="submitError">{{ submitError }}</div>
+    <div class="state-banner info" *ngIf="submitSuccess">{{ submitSuccess }}</div>
+
+    <form class="submission-form" (ngSubmit)="submitAssignment()">
+      <label class="field">
+        <span class="label">Descripción</span>
+        <textarea
+          class="text-input"
+          name="submissionText"
+          [(ngModel)]="submissionText"
+          placeholder="Escribe tu respuesta para esta actividad...">
+        </textarea>
+      </label>
+
+      <div class="field">
+        <span class="label">Enlaces</span>
+        <div class="links-input-row">
+          <input
+            class="input"
+            name="linkInput"
+            [(ngModel)]="linkInput"
+            placeholder="https://..."
+            (keyup.enter)="addLink(); $event.preventDefault()" />
+          <button class="btn btn-secondary" type="button" (click)="addLink()">Agregar enlace</button>
+        </div>
+
+        <div class="links-list" *ngIf="links.length">
+          <span class="link-chip" *ngFor="let link of links; let i = index">
+            <a [href]="link" target="_blank" rel="noopener">{{ link }}</a>
+            <button type="button" class="remove-link" (click)="removeLink(i)">×</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Archivo adjunto</span>
+        <app-file-upload-zone
+          #submissionUploadZone
+          [compact]="true"
+          acceptedTypes=".pdf,.doc,.docx,.xlsx,.zip,.png,.jpg,.jpeg"
+          labelStrong="Suelta tu archivo aquí"
+          labelSub="o haz clic para seleccionarlo"
+          hintText="PDF, DOCX, XLSX, ZIP, PNG, JPG"
+          (fileSelected)="onSubmissionFileSelected($event)">
+        </app-file-upload-zone>
+      </div>
+
+      <div class="builder-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="submitting || !isPending(current)">
+          {{ submitting ? 'Enviando...' : 'Enviar entrega' }}
+        </button>
+        <button class="btn btn-secondary" type="button" (click)="clearSubmissionDraft()" [disabled]="submitting">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

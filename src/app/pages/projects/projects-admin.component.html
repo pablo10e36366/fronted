@@ -1,0 +1,255 @@
+<div class="projects-page">
+  <main class="content">
+    <section class="stats-grid">
+      <div class="left-column">
+        <header class="page-header">
+          <div>
+            <h1>Mis proyectos</h1>
+            <p class="lead">Gestión centralizada de evidencias y documentación.</p>
+          </div>
+        </header>
+
+        <div class="state-banner success" *ngIf="successMessage">{{ successMessage }}</div>
+        <div class="state-banner error" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="state-banner info" *ngIf="loading">Procesando información...</div>
+
+        <div class="card heatmap-section">
+          <h3>HISTORIAL DE ACTIVIDAD</h3>
+          <div class="activity-heatmap">
+            <div class="heatmap-grid" aria-hidden="true"></div>
+            <div class="heatmap-legend" aria-hidden="true">
+              <span class="legend-label">Less</span>
+              <span class="legend-scale">
+                <i class="legend-sq sq-0"></i>
+                <i class="legend-sq sq-1"></i>
+                <i class="legend-sq sq-2"></i>
+                <i class="legend-sq sq-3"></i>
+                <i class="legend-sq sq-4"></i>
+              </span>
+              <span class="legend-label">More</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-column" aria-label="KPIs">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-blue" aria-hidden="true">📁</div>
+            <div class="kpi-meta">
+              <div class="kpi-number">{{ kpiTotal }}</div>
+              <div class="kpi-label">Total Proyectos</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-amber" aria-hidden="true">⏱️</div>
+            <div class="kpi-meta">
+              <div class="kpi-number">{{ kpiReview }}</div>
+              <div class="kpi-label">En Revisión</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-green" aria-hidden="true">✅</div>
+            <div class="kpi-meta">
+              <div class="kpi-number">{{ kpiCompleted }}</div>
+              <div class="kpi-label">Validados</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-purple" aria-hidden="true">⭐</div>
+            <div class="kpi-meta">
+              <div class="kpi-number">{{ kpiScore }}%</div>
+              <div class="kpi-label">Calidad Promedio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="new-project card">
+          <h3>Nuevo proyecto</h3>
+          <p class="muted">Completa los datos para iniciar un nuevo registro.</p>
+          <div class="form-field">
+            <label>Título *</label>
+            <input #newProjectTitle name="title" [(ngModel)]="title" placeholder="Ej. Informe semana 10" />
+          </div>
+          <div class="form-field">
+            <label>Descripción</label>
+            <textarea [(ngModel)]="description" placeholder="Breve descripción..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Archivo del proyecto</label>
+            <app-file-upload-zone
+              class="project-dropzone"
+              (fileSelected)="onProjectFileSelected($event)"
+              [acceptedTypes]="'.zip,.rar,.7z,.pdf,.docx,.doc,.xlsx,.pptx'"
+              [compact]="true"
+              [maxSizeMb]="100"
+              labelStrong="Arrastra tu proyecto aquí"
+              labelSub="o haz clic para seleccionar"
+              hintText="ZIP, RAR, PDF, DOCX (máx. 100MB)">
+            </app-file-upload-zone>
+          </div>
+          <div class="form-field">
+            <button class="btn primary" type="button" (click)="createProject()" [disabled]="loading">Crear</button>
+          </div>
+        </div>
+
+        <div class="table-card card">
+          <div class="toolbar">
+            <div class="toolbar-row">
+              <div class="toolbar-left">
+                <div class="search-wrapper">
+                  <span class="search-icon" aria-hidden="true">🔍</span>
+                  <input
+                    type="text"
+                    (input)="onSearch($any($event.target).value)"
+                    [value]="searchTerm"
+                    placeholder="Buscar proyecto, autor o tag..."
+                  />
+                </div>
+
+                <select [(ngModel)]="filterStatus" (change)="applyFilters()">
+                  <option value="ALL">Todos los estados</option>
+                  <option value="draft">Borrador</option>
+                  <option value="in_progress">En progreso</option>
+                  <option value="in_review">En revisión</option>
+                  <option value="completed">Completado</option>
+                </select>
+              </div>
+
+              <div class="toolbar-right">
+                <button class="btn ghost" type="button" (click)="exportProjects()">Exportar</button>
+                <button class="btn primary" type="button" (click)="focusNewProject()">+ Nuevo Proyecto</button>
+              </div>
+            </div>
+
+            <div class="toolbar-row">
+              <div class="toolbar-left">
+                <select [(ngModel)]="filterTech" (change)="applyFilters()">
+                  <option value="ALL">Todas las tecnologías</option>
+                  <option value="MATH">Math</option>
+                  <option value="CALCULUS">Calculus</option>
+                  <option value="ANGULAR">Angular</option>
+                  <option value="NESTJS">NestJS</option>
+                  <option value="DESIGN">Design</option>
+                  <option value="FIGMA">Figma</option>
+                  <option value="DOCS">Docs</option>
+                  <option value="BACKEND">Backend</option>
+                  <option value="FRONTEND">Frontend</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <table class="projects-table">
+            <thead>
+              <tr>
+                <th>Proyecto / Descripción</th>
+                <th>Propietario</th>
+                <th>Tags</th>
+                <th>Progreso</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let project of filteredProjects">
+                <td class="project-cell">
+                  <div class="project-title">{{ project.title }}</div>
+                  <div class="project-desc">{{ project.description || 'Sin descripción' }}</div>
+                </td>
+                <td class="owner-cell">
+                  <div class="owner-name">{{ project.owner?.name || 'Sin propietario' }}</div>
+                  <div class="owner-email">{{ project.owner?.email || 'N/A' }}</div>
+                </td>
+                <td><span class="tag" *ngFor="let tag of project.tags">{{ tag }}</span></td>
+                <td class="progress-cell">
+                  <div class="progress-meter">
+                    <span class="progress-dot" aria-hidden="true"></span>
+                    <div class="progress-track"><i [style.width.%]="project.progress"></i></div>
+                    <span class="progress-text">{{ project.progress }}%</span>
+                  </div>
+                </td>
+                <td><span class="status-pill">{{ getStatusLabel(project.uiStatus) }}</span></td>
+                <td class="actions-cell">
+                  <div class="action-grid">
+                    <button class="icon-btn" type="button" (click)="viewProject(project.id)">Ver</button>
+                    <button class="icon-btn" type="button" (click)="downloadProject(project)">Descargar</button>
+                    <button class="icon-btn" type="button" (click)="editProject(project)">Editar</button>
+                    <button class="icon-btn danger" type="button" (click)="deleteProject(project.id)">Eliminar</button>
+                    <button class="icon-btn warning" type="button" (click)="archiveProject(project)">Archivar</button>
+                    <button class="icon-btn info" type="button" (click)="openForceStatusModal(project)">Forzar estado</button>
+                  </div>
+                  <div class="status-change-row">
+                    <select
+                      [disabled]="loading || loadingTransitionsByProject[project.id]"
+                      (focus)="loadTransitions(project.id)"
+                      (change)="changeProjectStatus(project, $any($event.target).value)">
+                      <option value="">Cambiar estado...</option>
+                      <option *ngFor="let state of getTransitions(project.id)" [value]="state">
+                        {{ getStatusLabel(state) }}
+                      </option>
+                    </select>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="!filteredProjects.length && !loading">
+                <td colspan="6" class="empty-row">No hay proyectos para mostrar.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" type="button" (click)="focusNewProject()">+</button>
+</div>
+
+<div class="modal-backdrop" *ngIf="showEditModal || showForceStatusModal">
+  <div class="modal-card" *ngIf="showEditModal">
+    <h3>Editar proyecto</h3>
+    <div class="form-field">
+      <label>Título *</label>
+      <input [(ngModel)]="editTitle" />
+    </div>
+    <div class="form-field">
+      <label>Descripción</label>
+      <textarea [(ngModel)]="editDescription"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" type="button" (click)="closeEditModal()">Cancelar</button>
+      <button class="btn primary" type="button" (click)="saveEdit()" [disabled]="loading">Guardar</button>
+    </div>
+  </div>
+
+  <div class="modal-card" *ngIf="showForceStatusModal">
+    <h3>Forzar estado del proyecto</h3>
+    <p class="muted">
+      Proyecto: <strong>{{ forceStatusProject?.title }}</strong>
+    </p>
+    <div class="form-field">
+      <label>Estado destino</label>
+      <select [(ngModel)]="forceStatusValue">
+        <option value="draft">Borrador</option>
+        <option value="in_progress">En progreso</option>
+        <option value="in_review">En revisión</option>
+        <option value="completed">Completado</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Razón *</label>
+      <textarea [(ngModel)]="forceStatusReason" placeholder="Motivo del cambio forzado..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" type="button" (click)="closeForceStatusModal()">Cancelar</button>
+      <button class="btn primary" type="button" (click)="confirmForceStatus()" [disabled]="loading">
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>

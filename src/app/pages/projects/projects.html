@@ -1,133 +1,22 @@
-<div class="projects-page">
-
-  <!-- ENCABEZADO -->
-  <header class="projects-header">
-    <div>
-      <h1>Mis proyectos</h1>
-      <p class="subtitle">Sube tus documentos al repositorio y consulta tu historial.</p>
-    </div>
-    <div class="badge-counter">
-      <span class="badge-label">Total proyectos</span>
-      <span class="badge-number">{{ projects.length }}</span>
-    </div>
-  </header>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <div class="content-grid">
-
-    <!-- CARD FORMULARIO -->
-    <section class="card form-card">
-      <h2 class="card-title">Nuevo proyecto</h2>
-      <p class="card-subtitle">Completa los datos y adjunta el archivo a subir.</p>
-
-      <form (ngSubmit)="onSubmit()" #projectForm="ngForm" novalidate>
-        <div class="form-group">
-          <label>Título <span>*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="title"
-            name="title"
-            required
-            placeholder="Ej. Informe semana 10"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Descripción</label>
-          <textarea
-            [(ngModel)]="description"
-            name="description"
-            rows="3"
-            placeholder="Breve descripción del proyecto"
-          ></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Archivo <span>*</span></label>
-          <div class="file-input-wrapper">
-            <input
-              type="file"
-              id="project-file"
-              (change)="onFileChange($event)"
-            />
-          </div>
-          <small class="help-text">Formatos recomendados: PDF, DOCX, PPTX, ZIP.</small>
-        </div>
-
-        <button
-          type="submit"
-          class="btn-primary"
-          [class.loading]="loading"
-          [disabled]="loading"
-        >
-          <span *ngIf="!loading">Subir proyecto</span>
-          <span *ngIf="loading">Subiendo...</span>
-        </button>
-
-        <p *ngIf="errorMessage" class="alert error">{{ errorMessage }}</p>
-        <p *ngIf="successMessage" class="alert success">{{ successMessage }}</p>
-      </form>
-    </section>
-
-    <!-- CARD LISTA -->
-    <section class="card table-card">
-      <div class="table-header">
-        <h2 class="card-title">Lista de proyectos</h2>
+<section class="content">
+  <ng-container [ngSwitch]="role">
+    <ng-container *ngSwitchCase="'admin'">
+      <app-projects-admin></app-projects-admin>
+    </ng-container>
+    <ng-container *ngSwitchCase="'docente'">
+      <div class="card">
+        <h3>Acceso no disponible</h3>
+        <p>Tu interfaz principal ahora es el Panel Docente.</p>
       </div>
-
-      <ng-container *ngIf="projects.length > 0; else noProjects">
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th class="th-actions">Archivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let project of projects">
-                <td class="cell-title">
-                  <span class="title-text">{{ project.title }}</span>
-                </td>
-                <td>{{ project.description || '—' }}</td>
-                <td>
-                  <span
-                    class="status-pill"
-                    [ngClass]="{
-                      'status-active': project.status === 'activo',
-                      'status-completed': project.status === 'completado',
-                      'status-archived': project.status === 'archivado'
-                    }"
-                  >
-                    {{ project.status || '—' }}
-                  </span>
-                </td>
-                <td>{{ project.created_at | date: 'short' }}</td>
-                <td class="td-actions">
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    (click)="downloadProject(project.id)"
-                  >
-                    Descargar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ng-container>
-
-      <ng-template #noProjects>
-        <div class="empty-state">
-          <p>Aún no has subido proyectos.</p>
-          <span>Empieza creando uno desde el formulario de la izquierda.</span>
-        </div>
-      </ng-template>
-    </section>
-
-  </div>
-</div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'estudiante'">
+      <app-projects-student></app-projects-student>
+    </ng-container>
+    <ng-container *ngSwitchDefault>
+      <div class="card">
+        <h3>Acceso no autorizado</h3>
+        <p>No tienes los permisos necesarios para ver esta sección.</p>
+      </div>
+    </ng-container>
+  </ng-container>
+</section>

@@ -1,0 +1,10 @@
+[1m[33m[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`[39m[22m
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[1m[31m[2m8:08:58 p.m.[22m[1m [31m[1m[vite][22m[1m[31m [31m[2m(ssr)[22m[1m[31m [31mError when evaluating SSR module /main.server.mjs?timestamp=1770599330770: There is a new version of the pre-bundle for "D:/projects/fronted/.angular/cache/20.3.12/fronted/vite/deps_ssr/@angular_core.js?v=19c19937", a page reload is going to ask for it.[31m
+      at throwOutdatedRequest (file:///D:/projects/fronted/node_modules/vite/dist/node/chunks/config.js:12047:32)
+      at LoadPluginContext.load (file:///D:/projects/fronted/node_modules/vite/dist/node/chunks/config.js:12018:59)
+      at EnvironmentPluginContainer.load (file:///D:/projects/fronted/node_modules/vite/dist/node/chunks/config.js:30881:56)
+      at loadAndTransform (file:///D:/projects/fronted/node_modules/vite/dist/node/chunks/config.js:26015:43)
+      at doTransform (file:///D:/projects/fronted/node_modules/vite/dist/node/chunks/config.js:25984:17)[39m[22m
+[1m[31mAn unhandled exception occurred: There is a new version of the pre-bundle for "D:/projects/fronted/.angular/cache/20.3.12/fronted/vite/deps_ssr/@angular_core.js?v=19c19937", a page reload is going to ask for it.
+See "C:\Users\USER\AppData\Local\Temp\ng-MgBWGi\angular-errors.log" for further details.[39m[22m

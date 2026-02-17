@@ -1,0 +1,87 @@
+<div class="admin-container">
+  <header class="admin-header">
+    <h1>Panel de Administración</h1>
+    <div class="user-info">
+      <span>Bienvenido, {{ currentUser?.name || 'Administrador' }}</span>
+      <button class="btn-logout" (click)="logout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <nav class="admin-nav">
+    <ul>
+      <li><a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a></li>
+      <li><a routerLink="/admin/users" routerLinkActive="active">Gestión de Usuarios</a></li>
+      <li><a routerLink="/admin/projects" routerLinkActive="active">Gestión de Proyectos</a></li>
+      <li><a routerLink="/admin/settings" routerLinkActive="active">Configuración</a></li>
+    </ul>
+  </nav>
+
+  <main class="admin-content">
+    <div class="admin-card">
+      <h2>Resumen del Sistema</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Usuarios Activos</h3>
+          <p class="stat-number">42</p>
+        </div>
+        <div class="stat-card">
+          <h3>Proyectos Activos</h3>
+          <p class="stat-number">18</p>
+        </div>
+        <div class="stat-card">
+          <h3>Tareas Pendientes</h3>
+          <p class="stat-number">156</p>
+        </div>
+        <div class="stat-card">
+          <h3>Espacio Utilizado</h3>
+          <p class="stat-number">75%</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Actividad Reciente</h2>
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Acción</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Juan Pérez</td>
+            <td>Creó un nuevo proyecto</td>
+            <td>2024-01-15 10:30</td>
+          </tr>
+          <tr>
+            <td>María García</td>
+            <td>Actualizó configuración</td>
+            <td>2024-01-15 09:15</td>
+          </tr>
+          <tr>
+            <td>Carlos López</td>
+            <td>Eliminó usuario inactivo</td>
+            <td>2024-01-14 16:45</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-card">
+      <h2>Acciones Rápidas</h2>
+      <div class="quick-actions">
+        <button class="btn-action" (click)="createUser()">Crear Nuevo Usuario</button>
+        <button class="btn-action" (click)="generateReport()">Generar Reporte</button>
+        <button class="btn-action" (click)="configurePermissions()">Configurar Permisos</button>
+        <button class="btn-action" (click)="viewSystemLogs()">Ver Logs del Sistema</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="admin-footer">
+    <p>Sistema de Administración Fronted &copy; 2024</p>
+    <p class="role-badge" *ngIf="isAdmin()">Rol: Administrador</p>
+  </footer>
+</div>

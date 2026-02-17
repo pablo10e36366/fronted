@@ -1,0 +1,81 @@
+﻿<div class="dashboard-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Notificaciones</h1>
+      <p class="page-subtitle">Tus alertas y actividad reciente</p>
+    </div>
+    <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+
+  <section class="grid" *ngIf="!loading">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <h2>Trabajos del profesor</h2>
+          <span class="count">{{ teacherUploadItems.length }}</span>
+        </div>
+        <span class="muted small">Actividades y archivos publicados</span>
+      </div>
+      <div class="card-body" *ngIf="teacherUploadItems?.length; else emptyUploads">
+        <a class="item" *ngFor="let it of teacherUploadItems" [routerLink]="it.deep_link || '/actividades'">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name || 'Curso' }}</span>
+            <span class="dot">&bull;</span>
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </a>
+      </div>
+      <ng-template #emptyUploads>
+        <div class="empty">Sin publicaciones por ahora.</div>
+      </ng-template>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <h2>Entregas</h2>
+          <span class="count">{{ deliveryItems.length }}</span>
+        </div>
+        <span class="muted small">Confirmaciones de entrega</span>
+      </div>
+      <div class="card-body" *ngIf="deliveryItems?.length; else emptyDeliveries">
+        <a class="item" *ngFor="let it of deliveryItems" [routerLink]="it.deep_link || '/entregas'">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name || 'Curso' }}</span>
+            <span class="dot">&bull;</span>
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </a>
+      </div>
+      <ng-template #emptyDeliveries>
+        <div class="empty">Sin entregas recientes.</div>
+      </ng-template>
+    </div>
+
+    <div class="card card-wide">
+      <div class="card-header">
+        <div class="card-title-row">
+          <h2>Inicios de sesión</h2>
+          <span class="count">{{ loginItems.length }}</span>
+        </div>
+        <span class="muted small">Tu actividad reciente</span>
+      </div>
+      <div class="card-body" *ngIf="loginItems?.length; else emptyLogins">
+        <div class="item" *ngFor="let it of loginItems">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </div>
+      </div>
+      <ng-template #emptyLogins>
+        <div class="empty">Sin registros recientes.</div>
+      </ng-template>
+    </div>
+  </section>
+</div>

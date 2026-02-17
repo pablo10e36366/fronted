@@ -1,0 +1,38 @@
+<header class="topbar">
+  <!-- Logo Area -->
+  <div class="topbar-brand">
+    <div class="logo-icon">
+      <!-- Simple P shape or similar -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="brand-name">Promanage</span>
+  </div>
+
+  <!-- User Profile -->
+  <ng-container *ngIf="user$ | async as user">
+    <div class="user-menu" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="user-profile"
+        (click)="toggleMenu($event)"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="menuOpen">
+        <div class="avatar" aria-hidden="true">
+          {{ getInitials(user.name, user.email) }}
+        </div>
+        <span class="user-name">{{ user.name || user.email || 'Usuario' }}</span>
+        <svg class="chevron-down" [class.open]="menuOpen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <div class="dropdown" *ngIf="menuOpen" role="menu">
+        <button type="button" class="dropdown-item" role="menuitem" (click)="logout()">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</header>

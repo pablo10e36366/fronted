@@ -1,20 +1,38 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { provideRouter } from '@angular/router';
 
-import { Login } from './login';
+import { LoginComponent } from './login';
+import { AuthService } from '../../services/auth';
+import { NotificationService } from '../../services/notification.service';
 
-describe('Login', () => {
-  let component: Login;
-  let fixture: ComponentFixture<Login>;
+describe('LoginComponent', () => {
+  let component: LoginComponent;
+  let fixture: ComponentFixture<LoginComponent>;
+  let authServiceMock: jasmine.SpyObj<AuthService>;
+  let notificationServiceMock: jasmine.SpyObj<NotificationService>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [Login]
-    })
-    .compileComponents();
+    authServiceMock = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    authServiceMock.login.and.returnValue(
+      of({ access_token: 'token', refresh_token: 'refresh' } as any),
+    );
+    notificationServiceMock = jasmine.createSpyObj<NotificationService>(
+      'NotificationService',
+      ['showError', 'showSuccess'],
+    );
 
-    fixture = TestBed.createComponent(Login);
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authServiceMock },
+        { provide: NotificationService, useValue: notificationServiceMock },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {

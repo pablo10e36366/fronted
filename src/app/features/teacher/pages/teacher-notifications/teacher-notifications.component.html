@@ -1,0 +1,81 @@
+<div class="dashboard-page">
+  <header class="page-header">
+    <h1 class="page-title">Notificaciones</h1>
+    <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+
+  <section class="grid" *ngIf="!loading">
+    <div class="card">
+      <div class="card-header">
+        <h2>Entregas de estudiantes</h2>
+        <span class="muted small">Últimas entregas recibidas</span>
+      </div>
+      <div class="card-body" *ngIf="submissionItems?.length; else emptySubmissions">
+        <button
+          class="item"
+          type="button"
+          *ngFor="let it of submissionItems; trackBy: trackById"
+          (click)="open(it)">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name || 'Curso' }}</span>
+            <span class="dot" *ngIf="it.actor_name">•</span>
+            <span class="meta" *ngIf="it.actor_name">{{ it.actor_name }}</span>
+            <span class="dot">•</span>
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </button>
+      </div>
+      <ng-template #emptySubmissions>
+        <div class="empty">Sin entregas por ahora.</div>
+      </ng-template>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Solicitudes de inscripción</h2>
+        <span class="muted small">Estudiantes que quieren unirse a tus cursos</span>
+      </div>
+      <div class="card-body" *ngIf="joinRequestItems?.length; else emptyJoinRequests">
+        <button
+          class="item"
+          type="button"
+          *ngFor="let it of joinRequestItems; trackBy: trackById"
+          (click)="open(it)">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name || 'Curso' }}</span>
+            <span class="dot" *ngIf="it.actor_name">•</span>
+            <span class="meta" *ngIf="it.actor_name">{{ it.actor_name }}</span>
+            <span class="dot">•</span>
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </button>
+      </div>
+      <ng-template #emptyJoinRequests>
+        <div class="empty">Sin solicitudes por ahora.</div>
+      </ng-template>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Inicios de sesión</h2>
+        <span class="muted small">Tu actividad reciente</span>
+      </div>
+      <div class="card-body" *ngIf="loginItems?.length; else emptyLogins">
+        <div class="item" *ngFor="let it of loginItems; trackBy: trackById">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.created_at | date:'short' }}</span>
+          </div>
+        </div>
+      </div>
+      <ng-template #emptyLogins>
+        <div class="empty">Sin registros recientes.</div>
+      </ng-template>
+    </div>
+  </section>
+</div>

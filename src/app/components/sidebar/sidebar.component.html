@@ -1,0 +1,55 @@
+<nav class="sidebar">
+  <ul class="nav-list">
+    <li class="nav-item" routerLinkActive="active">
+      <a [routerLink]="['/inicio']" class="nav-link">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5l9-7 9 7V20a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2V9.5z"></path>
+        </svg>
+        <span class="nav-text">Inicio</span>
+        <span class="nav-badge" *ngIf="inicioBadgeCount > 0">{{ inicioBadgeCount }}</span>
+      </a>
+    </li>
+    <li class="nav-item" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <a [routerLink]="['/']" class="nav-link">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+        </svg>
+        <span class="nav-text">Mis Cursos</span>
+      </a>
+    </li>
+	    <li class="nav-item" routerLinkActive="active">
+	      <a [routerLink]="['/entregas']" class="nav-link">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+		        <span class="nav-text">{{ deliveriesLabel }}</span>
+            <span class="nav-badge" *ngIf="badges?.submissions_pending">{{ badges?.submissions_pending }}</span>
+		      </a>
+		    </li>
+    <li class="nav-item">
+      <a [routerLink]="['/perfil']" class="nav-link" routerLinkActive="active">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span class="nav-text">Mi Perfil</span>
+      </a>
+    </li>
+
+    <li class="nav-item" routerLinkActive="active">
+      <a [routerLink]="['/notificaciones']" class="nav-link">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="nav-text">Notificaciones</span>
+        <span class="nav-badge" *ngIf="notificationsBadgeCount > 0">{{ notificationsBadgeCount }}</span>
+      </a>
+    </li>
+  </ul>
+</nav>

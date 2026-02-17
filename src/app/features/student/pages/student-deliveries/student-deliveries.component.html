@@ -1,0 +1,87 @@
+<div class="deliveries-page">
+  <header class="page-header">
+    <div>
+      <h1>Pendientes</h1>
+      <p class="muted">Tus actividades pendientes y evidencias.</p>
+    </div>
+  </header>
+
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <section class="card filters">
+    <div class="filters-row">
+      <input class="input" [(ngModel)]="q" (keyup.enter)="applyFilters()" placeholder="Buscar por curso o actividad..." />
+
+      <select class="input" [(ngModel)]="status" (change)="applyFilters()">
+        <option value="PENDIENTE">Pendientes</option>
+        <option value="ENTREGADO">Entregadas</option>
+        <option value="REVISADO">Revisadas</option>
+        <option value="all">Todas</option>
+      </select>
+
+      <select class="input" [(ngModel)]="selectedCourseId" (change)="applyFilters()">
+        <option value="">Todos los cursos</option>
+        <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+      </select>
+
+      <select class="input" [(ngModel)]="sort" (change)="applyFilters()">
+        <option value="deadline_asc">Próximas</option>
+        <option value="created_at_desc">Más recientes</option>
+      </select>
+
+      <button class="btn btn-primary" type="button" (click)="applyFilters()">Filtrar</button>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="!loading">
+    <table class="table" *ngIf="items.length; else emptyList">
+      <thead>
+        <tr>
+          <th>Curso</th>
+          <th>Actividad</th>
+          <th>Estado</th>
+          <th>Vence</th>
+          <th>Archivo</th>
+          <th>Abrir</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let it of items">
+          <td>{{ it.course_name || it.course_id }}</td>
+          <td>{{ it.milestone_title || 'Actividad' }}</td>
+          <td>
+            <span class="status" [attr.data-status]="it.status">{{ statusLabel(it) }}</span>
+            <span class="late" *ngIf="it.is_late">Tarde</span>
+          </td>
+          <td>{{ it.due_at ? (it.due_at | date:'short') : '—' }}</td>
+          <td>{{ it.evidence_title || '—' }}</td>
+          <td>
+            <div class="actions">
+              <a
+                *ngIf="it.milestone_id; else openCourseOnly"
+                class="btn btn-secondary"
+                [routerLink]="['/actividades', it.course_id]"
+                [queryParams]="{ milestone_id: it.milestone_id }">
+                Ir a actividad
+              </a>
+              <ng-template #openCourseOnly>
+                <a class="btn btn-secondary" [routerLink]="['/projects', it.course_id]">Abrir curso</a>
+              </ng-template>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyList>
+      <div class="empty">No hay pendientes para los filtros actuales.</div>
+    </ng-template>
+  </section>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn prev" type="button" (click)="goToPage(page - 1)" [disabled]="page <= 1">‹</button>
+    <span class="page-info">{{ page }} / {{ totalPages }}</span>
+    <button class="page-btn next" type="button" (click)="goToPage(page + 1)" [disabled]="page >= totalPages">›</button>
+  </div>
+</div>

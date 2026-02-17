@@ -1,0 +1,43 @@
+<div class="course-card">
+  <div class="course-thumbnail">
+    <img [src]="thumbnailSrc" alt="Course Thumbnail" />
+  </div>
+
+  <div class="course-content">
+    <h3 class="course-title">{{ course?.title || 'Curso sin título' }}</h3>
+    <div class="course-meta">
+      <span class="meta-text">{{ course?.students_count || 0 }} estudiantes</span>
+      <span class="meta-sep">•</span>
+      <span class="meta-text">{{ course?.code || '----' }}</span>
+    </div>
+
+    <div class="course-counters">
+      <span class="counter">Pendientes: {{ course?.pending_submissions_count || 0 }}</span>
+      <span class="meta-sep">·</span>
+      <span class="counter">Dudas: {{ course?.unanswered_threads_count || 0 }}</span>
+    </div>
+  </div>
+
+			  <div class="course-actions">
+				    <ng-container *ngIf="variant !== 'available'; else availableActions">
+				      <button class="btn btn-secondary" [routerLink]="['/actividades', course?.id]">Actividades</button>
+				      <button *ngIf="showOpenCourse" class="btn btn-primary" [routerLink]="['/projects', course?.id]">Abrir Curso</button>
+              <button
+                *ngIf="canDelete"
+                class="btn btn-danger"
+                type="button"
+                (click)="$event.preventDefault(); $event.stopPropagation(); onDeleteClick()">
+                Eliminar
+              </button>
+				    </ng-container>
+				    <ng-template #availableActions>
+				      <button
+				        class="btn btn-primary"
+				        type="button"
+				        (click)="onJoinClick()"
+				        [disabled]="joinDisabled">
+				        {{ joinLabel }}
+				      </button>
+				    </ng-template>
+				  </div>
+			</div>

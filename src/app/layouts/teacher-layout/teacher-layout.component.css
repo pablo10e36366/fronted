@@ -1,0 +1,33 @@
+/* Contenedor principal */
+.teacher-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* Topbar ya ocupa su altura natural */
+app-topbar {
+  flex: 0 0 auto;
+}
+
+/* Cuerpo: sidebar + contenido */
+.layout-body {
+  display: flex;
+  flex: 1;
+  min-height: 0; /* CLAVE para evitar blanco */
+}
+
+/* Sidebar */
+.layout-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+/* CONTENIDO PRINCIPAL */
+.layout-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: #f7f9fc;
+}

@@ -1,0 +1,196 @@
+<div class="deliveries-page" >
+  <header class="page-header">
+    <div class="header-left">
+      <div>
+        <h1>Entregas</h1>
+        <p class="muted">Bandeja unificada · Revisa en cadena con “Siguiente pendiente”.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="state-banner info" *ngIf="coursesLoading">Cargando cursos...</div>
+  <div class="state-banner info" *ngIf="loading">Cargando entregas...</div>
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <section class="card filters">
+    <div class="filters-row">
+      <div class="search-box">
+        <input
+          class="input"
+          [ngModel]="q"
+          (ngModelChange)="onSearchInput($event)"
+          (keyup.enter)="applyFilters()"
+          (focus)="onSearchFocus()"
+          (blur)="onSearchBlur()"
+          autocomplete="off"
+          placeholder="Buscar por estudiante, curso o evidencia..."
+        />
+
+        <div class="suggestions" *ngIf="showSuggestions || suggestionsLoading">
+          <div class="suggestions-state" *ngIf="suggestionsLoading">Buscando sugerencias...</div>
+
+          <button
+            class="suggestion-item"
+            type="button"
+            *ngFor="let s of suggestions"
+            (mousedown)="selectSuggestion(s)"
+          >
+            <span class="suggestion-title">{{ s.title }}</span>
+            <span class="suggestion-subtitle">{{ s.subtitle }}</span>
+          </button>
+
+          <div class="suggestions-state" *ngIf="!suggestionsLoading && !suggestions.length">
+            Sin sugerencias para esta búsqueda.
+          </div>
+        </div>
+      </div>
+
+      <select class="input" [(ngModel)]="status" (change)="applyFilters()">
+        <option value="pending">Pendientes</option>
+        <option value="approved">Aprobadas</option>
+        <option value="changes_requested">Con cambios</option>
+        <option value="all">Todas</option>
+      </select>
+
+      <select class="input" [(ngModel)]="selectedCourseId" (change)="applyFilters()">
+        <option value="">Todos los cursos</option>
+        <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+      </select>
+
+      <select class="input" [(ngModel)]="sort" (change)="applyFilters()">
+        <option value="priority_desc">Prioridad</option>
+        <option value="created_at_desc">Más recientes</option>
+      </select>
+
+      <button class="btn btn-primary" type="button" (click)="applyFilters()">Filtrar</button>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="!loading">
+    <table class="table" *ngIf="submissions.length; else emptyList">
+      <thead>
+        <tr>
+          <th>Prioridad</th>
+          <th>Curso</th>
+          <th>Estudiante</th>
+          <th>Evidencia</th>
+          <th>Estado</th>
+          <th>Vence</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of submissions">
+          <td>
+            <span class="priority" [attr.data-priority]="s.priority">{{ s.priority }}</span>
+          </td>
+          <td>{{ s.course_name }}</td>
+          <td>
+            <div class="student">
+              <div class="student-name">{{ s.student_name }}</div>
+              <div class="student-email">{{ s.student_email }}</div>
+            </div>
+          </td>
+          <td>{{ s.title }}</td>
+          <td>
+            <span class="status" [attr.data-status]="s.status">{{ statusLabel(s.status) }}</span>
+            <span class="late" *ngIf="s.is_late">Tarde</span>
+          </td>
+          <td>{{ s.due_at ? (s.due_at | date:'short') : '—' }}</td>
+          <td>
+            <button class="btn btn-primary" type="button" (click)="openFromRow(s)">Revisar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyList>
+      <div class="empty">No hay entregas para los filtros actuales.</div>
+    </ng-template>
+  </section>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn prev" type="button" (click)="goToPage(page - 1)" [disabled]="page <= 1">←</button>
+    <span class="page-info">{{ page }} / {{ totalPages }}</span>
+    <button class="page-btn next" type="button" (click)="goToPage(page + 1)" [disabled]="page >= totalPages">→</button>
+  </div>
+</div>
+
+<!-- Modal: revisar entrega -->
+<div class="modal-backdrop" *ngIf="detailOpen" (click)="closeDetail()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Revisar entrega</h2>
+      <button class="icon-close" type="button" (click)="closeDetail()" [disabled]="detailLoading">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="detail as d; else loadingDetail">
+      <div class="kv">
+        <div class="k">Curso</div>
+        <div class="v">{{ d.course_name }}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Estudiante</div>
+        <div class="v">{{ d.student_name }} · {{ d.student_email }}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Estado</div>
+        <div class="v">
+          <span class="status" [attr.data-status]="d.status">{{ statusLabel(d.status) }}</span>
+          <span class="late" *ngIf="d.is_late">Tarde</span>
+        </div>
+      </div>
+
+      <div class="kv" *ngIf="d.evidence_title">
+        <div class="k">Archivo</div>
+        <div class="v">{{ d.evidence_title }}</div>
+      </div>
+
+      <div class="kv">
+        <div class="k">Vence</div>
+        <div class="v">{{ d.due_at ? (d.due_at | date:'short') : '—' }}</div>
+      </div>
+
+      <button class="btn btn-secondary" type="button" (click)="goToEvidence(d)" [disabled]="!d.evidence_id">
+        Ver evidencia
+      </button>
+
+      <div class="student-response" *ngIf="d.student_comment || d.student_links?.length">
+        <h3>Respuesta del estudiante</h3>
+
+        <div class="student-response-meta">
+          <span *ngIf="d.evidence_title"><strong>Archivo:</strong> {{ d.evidence_title }}</span>
+          <span *ngIf="d.submitted_at"><strong>Enviado:</strong> {{ d.submitted_at | date:'short' }}</span>
+        </div>
+
+        <p class="student-response-text" *ngIf="d.student_comment">{{ d.student_comment }}</p>
+
+        <div class="student-response-links" *ngIf="d.student_links?.length">
+          <a *ngFor="let link of d.student_links" [href]="link" target="_blank" rel="noopener noreferrer">
+            {{ link }}
+          </a>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Feedback</span>
+        <textarea [(ngModel)]="feedbackDraft" placeholder="Escribe retroalimentación..."></textarea>
+      </label>
+
+      <div class="modal-error" *ngIf="detailError">{{ detailError }}</div>
+    </div>
+
+    <ng-template #loadingDetail>
+      <div class="modal-body">
+        <div class="state-banner info" *ngIf="detailLoading">Cargando detalle...</div>
+      </div>
+    </ng-template>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" (click)="closeDetail()" [disabled]="detailLoading">Cerrar</button>
+      <button class="btn btn-secondary" type="button" (click)="openNextPending()" [disabled]="detailLoading || !detail?.id">Siguiente pendiente</button>
+      <button class="btn btn-primary" type="button" (click)="review('changes_requested', false)" [disabled]="detailLoading || !detail?.id">Solicitar cambios</button>
+      <button class="btn btn-primary" type="button" (click)="review('approved', true)" [disabled]="detailLoading || !detail?.id">Aprobar y siguiente</button>
+    </div>
+  </div>
+</div>

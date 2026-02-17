@@ -1,0 +1,46 @@
+<div class="courses-page">
+  <header class="page-header">
+    <h1 class="page-title">Mis Cursos</h1>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="infoMessage">{{ infoMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando cursos...</div>
+
+  <section class="courses-section" *ngIf="!loading">
+    <h2 class="section-title">Inscritos</h2>
+    <div class="courses-list">
+      <app-course-card
+        *ngFor="let course of courses"
+        [course]="course"
+        [showOpenCourse]="false"
+        class="course-card"></app-course-card>
+    </div>
+
+    <div class="empty" *ngIf="!courses.length">
+      <p>No tienes cursos disponibles todav&iacute;a.</p>
+    </div>
+  </section>
+
+  <section class="courses-section" *ngIf="!loading">
+    <h2 class="section-title">Cursos disponibles</h2>
+    <div class="courses-list">
+      <app-course-card
+        *ngFor="let course of availableCourses"
+        [course]="course"
+        variant="available"
+        (joinCourse)="requestJoin($event)"
+        class="course-card"></app-course-card>
+    </div>
+
+    <div class="empty" *ngIf="!availableCourses.length">
+      <p>No hay cursos disponibles por ahora.</p>
+    </div>
+  </section>
+
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="page-btn prev" type="button" (click)="goToPage(page - 1)" [disabled]="page <= 1">←</button>
+    <span class="page-info">{{ page }} / {{ totalPages }}</span>
+    <button class="page-btn next" type="button" (click)="goToPage(page + 1)" [disabled]="page >= totalPages">→</button>
+  </div>
+</div>

@@ -1,0 +1,133 @@
+<div class="dashboard-page" >
+  <header class="page-header">
+    <h1 class="page-title">Inicio</h1>
+    <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+  </header>
+
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner info" *ngIf="loading">Cargando...</div>
+
+  <section class="summary" *ngIf="dashboard as d">
+    <div class="summary-card">
+      <div class="summary-label">Pendientes</div>
+      <div class="summary-value">{{ d.summary.pending_submissions }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Dudas</div>
+      <div class="summary-value">{{ d.summary.unanswered_threads }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Atrasadas</div>
+      <div class="summary-value">{{ d.summary.overdue_items }}</div>
+    </div>
+  </section>
+
+  <section class="grid" *ngIf="dashboard as d">
+    <div class="card">
+      <div class="card-header">
+        <h2>Atrasadas</h2>
+        <span class="muted small">Lo más urgente</span>
+      </div>
+      <div class="card-body" *ngIf="d.overdue_items?.length; else emptyOverdue">
+        <button
+          class="item"
+          type="button"
+          *ngFor="let it of d.overdue_items; trackBy: trackById"
+          (click)="open(it)">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name }}</span>
+            <span class="dot">•</span>
+            <span class="meta">{{ it.student_name || 'Estudiante' }}</span>
+            <span class="dot" *ngIf="it.due_at">•</span>
+            <span class="meta" *ngIf="it.due_at">Vence: {{ it.due_at | date:'short' }}</span>
+          </div>
+        </button>
+      </div>
+      <ng-template #emptyOverdue>
+        <div class="empty">No tienes entregas atrasadas.</div>
+      </ng-template>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Hoy</h2>
+        <span class="muted small">Qué hacer a continuación</span>
+      </div>
+      <div class="card-body" *ngIf="d.today_items?.length; else emptyToday">
+        <button
+          class="item"
+          type="button"
+          *ngFor="let it of d.today_items; trackBy: trackById"
+          (click)="open(it)">
+          <div class="item-title">{{ it.title }}</div>
+          <div class="item-meta">
+            <span class="meta">{{ it.course_name }}</span>
+            <span class="dot" *ngIf="it.student_name">•</span>
+            <span class="meta" *ngIf="it.student_name">{{ it.student_name }}</span>
+            <span class="dot" *ngIf="it.due_at">•</span>
+            <span class="meta" *ngIf="it.due_at">Vence: {{ it.due_at | date:'short' }}</span>
+          </div>
+        </button>
+      </div>
+      <ng-template #emptyToday>
+        <div class="empty">Sin pendientes para hoy.</div>
+      </ng-template>
+    </div>
+  </section>
+</div>
+
+<!-- Modal: duda -->
+<div class="modal-backdrop" *ngIf="threadOpen" (click)="closeThread()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Duda</h2>
+      <button class="icon-close" type="button" (click)="closeThread()" [disabled]="threadLoading">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="thread as t; else threadLoadingTpl">
+      <div class="kv">
+        <div class="k">Curso</div>
+        <div class="v">{{ t.course_name }}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Autor</div>
+        <div class="v">{{ t.author_name }}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Título</div>
+        <div class="v">{{ t.title }}</div>
+      </div>
+
+      <div class="message">{{ t.message }}</div>
+
+      <div class="replies" *ngIf="t.replies?.length">
+        <div class="reply" *ngFor="let r of t.replies">
+          <div class="reply-head">{{ r.author_name }} · {{ r.created_at | date:'short' }}</div>
+          <div class="reply-body">{{ r.message }}</div>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Responder</span>
+        <textarea [(ngModel)]="threadReplyDraft" placeholder="Escribe tu respuesta..."></textarea>
+      </label>
+
+      <div class="modal-error" *ngIf="threadError">{{ threadError }}</div>
+    </div>
+
+    <ng-template #threadLoadingTpl>
+      <div class="modal-body">
+        <div class="state-banner info" *ngIf="threadLoading">Cargando...</div>
+        <div class="state-banner" *ngIf="threadError">{{ threadError }}</div>
+      </div>
+    </ng-template>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" (click)="closeThread()" [disabled]="threadLoading">Cerrar</button>
+      <button class="btn btn-primary" type="button" (click)="sendThreadReply()" [disabled]="threadLoading || !threadReplyDraft.trim()">
+        Enviar respuesta
+      </button>
+    </div>
+  </div>
+</div>

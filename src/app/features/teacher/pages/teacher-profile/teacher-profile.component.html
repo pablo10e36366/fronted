@@ -1,0 +1,57 @@
+﻿<div class="profile-page">
+  <header class="page-header">
+    <h1 class="page-title">Mi Perfil</h1>
+    <p class="page-subtitle">Gestiona tu información de cuenta en ProManage</p>
+  </header>
+
+  <ng-container *ngIf="user$ | async as user; else noUser">
+    <section class="hero card">
+      <div class="hero-content">
+        <div class="avatar">{{ initials(user.name) }}</div>
+        <div class="hero-copy">
+          <div class="hero-name">{{ user.name || 'Usuario ProManage' }}</div>
+          <div class="hero-email">{{ user.email || 'Sin correo registrado' }}</div>
+          <span class="role-pill" [ngClass]="roleClass(user.role)">
+            {{ displayRole(user.role) }}
+          </span>
+        </div>
+      </div>
+      <div class="hero-glow" aria-hidden="true"></div>
+    </section>
+
+    <section class="profile-grid">
+      <article class="card info-card">
+        <h2>Información de cuenta</h2>
+        <div class="row">
+          <div class="label">👤 Nombre</div>
+          <div class="value">{{ user.name || '—' }}</div>
+        </div>
+        <div class="row">
+          <div class="label">✉️ Email</div>
+          <div class="value">{{ user.email || '—' }}</div>
+        </div>
+        <div class="row">
+          <div class="label">🛡️ Rol</div>
+          <div class="value">{{ displayRole(user.role) }}</div>
+        </div>
+      </article>
+
+      <article class="card quick-card">
+        <h2>Resumen rápido</h2>
+        <div class="chip-list">
+          <span class="chip chip-indigo">Perfil activo</span>
+          <span class="chip chip-emerald">Sesión iniciada</span>
+          <span class="chip chip-amber">Cuenta verificada</span>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" (click)="logout()">Cerrar sesión</button>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+
+  <ng-template #noUser>
+    <div class="empty">No hay usuario cargado.</div>
+  </ng-template>
+</div>
