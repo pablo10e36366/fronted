@@ -86,6 +86,7 @@ export class TeacherService {
     student_id?: number | string;
     q?: string;
     sort?: string;
+    include_unsubmitted?: boolean;
     page?: number;
     page_size?: number;
   }): Observable<TeacherApiResponse<TeacherSubmissionsListData>> {
@@ -95,6 +96,9 @@ export class TeacherService {
     if (params?.student_id) httpParams = httpParams.set('student_id', params.student_id);
     if (params?.q) httpParams = httpParams.set('q', params.q);
     if (params?.sort) httpParams = httpParams.set('sort', params.sort);
+    if (typeof params?.include_unsubmitted === 'boolean') {
+      httpParams = httpParams.set('include_unsubmitted', String(params.include_unsubmitted));
+    }
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.page_size) httpParams = httpParams.set('page_size', params.page_size);
 

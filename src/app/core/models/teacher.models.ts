@@ -29,6 +29,8 @@ export type TeacherSubmissionListItem = {
   student_name: string;
   student_email: string;
   title: string;
+  milestone_id?: string | null;
+  milestone_title?: string | null;
   status: 'pending' | 'approved' | 'changes_requested';
   priority: 'high' | 'medium' | 'low';
   created_at: string | null;

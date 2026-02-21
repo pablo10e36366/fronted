@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subscription, forkJoin, switchMap, timer } from 'rxjs';
@@ -19,6 +19,7 @@ import { SessionService } from '../../core/auth/data-access/session.service';
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent implements OnInit, OnDestroy {
+  @Input() open = false;
   badges: TeacherBadges | null = null;
   studentDashboard: StudentDashboardData | null = null;
   unreadNotificationsCount = 0;
@@ -29,7 +30,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     private teacherService: TeacherService,
     private studentService: StudentService,
     private SessionService: SessionService,
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     const role = String(this.SessionService.getRole() || '').toLowerCase();
@@ -55,7 +56,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
               NOTIFICATIONS_LAST_SEEN_KEYS.teacher,
             );
           },
-          error: () => {},
+          error: () => { },
         });
       return;
     }
@@ -82,7 +83,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
               NOTIFICATIONS_LAST_SEEN_KEYS.student,
             );
           },
-          error: () => {},
+          error: () => { },
         });
       return;
     }

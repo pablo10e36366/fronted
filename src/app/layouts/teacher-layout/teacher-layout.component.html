@@ -1,8 +1,13 @@
 <div class="teacher-layout">
-  <app-topbar></app-topbar>
+  <app-topbar (toggleSidebar)="toggleSidebar()"></app-topbar>
 
   <div class="layout-body">
-    <app-sidebar class="layout-sidebar"></app-sidebar>
+    <app-sidebar class="layout-sidebar" [open]="sidebarOpen"></app-sidebar>
+
+    <!-- Backdrop overlay (mobile) -->
+    <div class="sidebar-backdrop"
+         [class.sidebar-backdrop--visible]="sidebarOpen"
+         (click)="closeSidebar()"></div>
 
     <main class="layout-content">
       <router-outlet></router-outlet>

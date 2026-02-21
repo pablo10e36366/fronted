@@ -1,4 +1,4 @@
-.deliveries-page{
+.deliveries-page {
   padding: 0;
 }
 
@@ -111,7 +111,7 @@ h1 {
   cursor: pointer;
 }
 
-.suggestion-item + .suggestion-item {
+.suggestion-item+.suggestion-item {
   border-top: 1px solid rgba(15, 23, 42, 0.06);
 }
 
@@ -451,5 +451,16 @@ h1 {
 
   .k {
     white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 28px;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
   }
 }

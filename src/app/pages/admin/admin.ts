@@ -23,7 +23,7 @@ type AdminTab = 'dashboard' | 'users' | 'projects' | 'settings';
   template: `
     <div class="admin-layout">
       <aside class="admin-sidebar">
-        <div class="brand">??? Admin Panel</div>
+        <div class="brand">Admin Panel</div>
         <nav class="nav-menu">
           <button class="nav-item" [class.active]="activeTab === 'dashboard'" (click)="activeTab = 'dashboard'">
             Dashboard
@@ -35,12 +35,12 @@ type AdminTab = 'dashboard' | 'users' | 'projects' | 'settings';
             Proyectos
           </button>
           <button class="nav-item" [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
-            Configuraci髇
+            Configuraci贸n
           </button>
         </nav>
 
         <div class="user-footer">
-          <button class="btn-logout" (click)="logout()">Cerrar sesi髇</button>
+          <button class="btn-logout" (click)="logout()">Cerrar sesi贸n</button>
         </div>
       </aside>
 
@@ -217,9 +217,9 @@ export class AdminComponent {
   getTitle(): string {
     const titles = {
       dashboard: 'Dashboard General',
-      users: 'Gesti髇 de Usuarios',
+      users: 'Gesti贸n de Usuarios',
       projects: 'Control de Proyectos',
-      settings: 'Configuraci髇 del Sistema',
+      settings: 'Configuraci贸n del Sistema',
     };
     return titles[this.activeTab];
   }
@@ -229,4 +229,5 @@ export class AdminComponent {
     window.location.href = '/login';
   }
 }
+
 

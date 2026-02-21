@@ -1,4 +1,4 @@
-.dashboard-page{
+.dashboard-page {
   padding: 0;
 }
 
@@ -143,3 +143,18 @@
   color: #475569;
 }
 
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 28px;
+  }
+}

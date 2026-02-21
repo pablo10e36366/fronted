@@ -1,4 +1,4 @@
-.deliveries-page{
+.deliveries-page {
   padding: 0;
 }
 
@@ -128,4 +128,21 @@
 .page-info {
   font-weight: 800;
   color: rgba(15, 23, 42, 0.7);
+}
+
+@media (max-width: 768px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 28px;
+  }
 }

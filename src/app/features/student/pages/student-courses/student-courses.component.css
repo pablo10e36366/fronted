@@ -1,4 +1,4 @@
-.courses-page{
+.courses-page {
   background-color: #f8f9fa;
 }
 
@@ -89,4 +89,14 @@
 .page-info {
   font-weight: 800;
   color: rgba(15, 23, 42, 0.7);
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 28px;
+  }
+
+  .course-card {
+    padding: 14px;
+  }
 }

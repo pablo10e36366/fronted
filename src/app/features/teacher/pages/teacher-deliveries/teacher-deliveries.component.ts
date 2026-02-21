@@ -27,6 +27,8 @@ type DeliverySuggestion = {
   query: string;
   title: string;
   subtitle: string;
+  courseId: string;
+  source: 'submission' | 'activity';
   status: 'pending' | 'approved' | 'changes_requested';
 };
 
@@ -136,6 +138,12 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   }
 
   selectSuggestion(suggestion: DeliverySuggestion): void {
+    if (suggestion.source === 'activity') {
+      this.showSuggestions = false;
+      this.router.navigate(['/projects', suggestion.courseId]);
+      return;
+    }
+
     this.q = suggestion.query;
     this.showSuggestions = false;
     this.applyFilters();
@@ -233,11 +241,12 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   openNextPending(): void {
     const currentId = this.detail?.id;
     if (!currentId) return;
+    const normalizedQuery = this.q.trim();
 
     this.teacherService
       .getNextSubmission(currentId, {
         course_id: this.selectedCourseId || undefined,
-        q: this.q || undefined,
+        q: normalizedQuery || undefined,
       })
       .subscribe({
         next: (res) => {
@@ -288,12 +297,13 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   private loadSubmissions(): void {
     this.loading = true;
     this.errorMessage = '';
+    const normalizedQuery = this.q.trim();
 
     this.teacherService
       .getSubmissions({
         status: this.status,
         course_id: this.selectedCourseId || undefined,
-        q: this.q || undefined,
+        q: normalizedQuery || undefined,
         sort: this.sort,
         page: this.page,
         page_size: this.pageSize,
@@ -330,6 +340,8 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
           return this.teacherService
             .getSubmissions({
               status: 'all',
+              include_unsubmitted: true,
+              course_id: this.selectedCourseId || undefined,
               q: term,
               page: 1,
               page_size: 8,
@@ -346,8 +358,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
       )
       .subscribe((items) => {
         this.suggestions = this.mapSuggestions(items);
-        this.showSuggestions =
-          this.hasSearchFocus && this.q.trim().length >= 2 && !!this.suggestions.length;
+        this.showSuggestions = this.hasSearchFocus && this.q.trim().length >= 2;
       });
   }
 
@@ -356,10 +367,19 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     const suggestions: DeliverySuggestion[] = [];
 
     for (const item of items) {
-      const query = (item.title || item.student_name || item.course_name || '').trim();
+      const hasMilestone = !!(item.milestone_title || '').trim();
+      const query = (
+        hasMilestone
+          ? item.milestone_title || ''
+          : item.title || item.student_name || item.course_name || ''
+      ).trim();
       if (!query) continue;
 
-      const key = `${query.toLowerCase()}::${item.student_id}::${item.course_id}`;
+      const source: DeliverySuggestion['source'] =
+        hasMilestone && !item.evidence_id ? 'activity' : 'submission';
+      const key = hasMilestone
+        ? `milestone::${item.milestone_id || `${item.course_id}::${query.toLowerCase()}`}`
+        : `${query.toLowerCase()}::${item.student_id}::${item.course_id}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
@@ -367,7 +387,11 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
         id: item.id,
         query,
         title: query,
-        subtitle: `${item.course_name} · ${item.student_name} · ${this.statusLabel(item.status)}`,
+        subtitle: hasMilestone
+          ? `${item.course_name} · ${source === 'activity' ? 'Actividad publicada' : this.statusLabel(item.status)}`
+          : `${item.course_name} · ${item.student_name} · ${this.statusLabel(item.status)}`,
+        courseId: item.course_id,
+        source,
         status: item.status,
       });
     }

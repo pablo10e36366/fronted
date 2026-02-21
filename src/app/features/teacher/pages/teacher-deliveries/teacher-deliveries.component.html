@@ -23,7 +23,7 @@
           (focus)="onSearchFocus()"
           (blur)="onSearchBlur()"
           autocomplete="off"
-          placeholder="Buscar por estudiante, curso o evidencia..."
+          placeholder="Buscar por actividad, estudiante, curso o evidencia..."
         />
 
         <div class="suggestions" *ngIf="showSuggestions || suggestionsLoading">
@@ -70,7 +70,7 @@
     <table class="table" *ngIf="submissions.length; else emptyList">
       <thead>
         <tr>
-          <th>Prioridad</th>
+          <th>Tarea</th>
           <th>Curso</th>
           <th>Estudiante</th>
           <th>Evidencia</th>
@@ -82,7 +82,7 @@
       <tbody>
         <tr *ngFor="let s of submissions">
           <td>
-            <span class="priority" [attr.data-priority]="s.priority">{{ s.priority }}</span>
+            {{ s.milestone_title || 'Actividad' }}
           </td>
           <td>{{ s.course_name }}</td>
           <td>

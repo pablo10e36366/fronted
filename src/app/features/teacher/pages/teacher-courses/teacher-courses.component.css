@@ -1,5 +1,6 @@
-.courses-page{
-  background-color: #f8f9fa; /* Fondo de la página */
+.courses-page {
+  background-color: #f8f9fa;
+  /* Fondo de la página */
 }
 
 .page-header {
@@ -36,15 +37,20 @@
 .courses-list {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Espacio entre tarjetas */
+  gap: 16px;
+  /* Espacio entre tarjetas */
 }
 
 .course-card {
-  width: 100%; /* Cada tarjeta ocupa el 100% del ancho */
+  width: 100%;
+  /* Cada tarjeta ocupa el 100% del ancho */
   background-color: #FFFFFF;
-  border: 1px solid #E6EAF2; /* Borde suave */
-  border-radius: 12px; /* Borde redondeado */
-  padding: 20px; /* Espaciado interno */
+  border: 1px solid #E6EAF2;
+  /* Borde suave */
+  border-radius: 12px;
+  /* Borde redondeado */
+  padding: 20px;
+  /* Espaciado interno */
 }
 
 .empty {
@@ -180,4 +186,14 @@
 .page-info {
   font-weight: 800;
   color: rgba(15, 23, 42, 0.7);
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 28px;
+  }
+
+  .course-card {
+    padding: 14px;
+  }
 }

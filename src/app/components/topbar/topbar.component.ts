@@ -1,4 +1,4 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, EventEmitter, HostListener, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SessionService } from '../../core/auth/data-access/session.service';
 import { Observable } from 'rxjs';
@@ -12,6 +12,7 @@ import type { JwtUserPayload } from '../../core/models/auth.models';
   styleUrls: ['./topbar.component.css']
 })
 export class TopbarComponent {
+  @Output() toggleSidebar = new EventEmitter<void>();
   user$: Observable<JwtUserPayload | null>;
   menuOpen = false;
 

@@ -1,4 +1,4 @@
-.activities-page{
+.activities-page {
   padding: 0;
 }
 
@@ -184,6 +184,12 @@ h1 {
 @media (max-width: 900px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 28px;
   }
 }
 

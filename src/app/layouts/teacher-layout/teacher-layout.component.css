@@ -15,7 +15,9 @@ app-topbar {
 .layout-body {
   display: flex;
   flex: 1;
-  min-height: 0; /* CLAVE para evitar blanco */
+  min-height: 0;
+  /* CLAVE para evitar blanco */
+  position: relative;
 }
 
 /* Sidebar */
@@ -30,4 +32,44 @@ app-topbar {
   padding: 24px;
   overflow-y: auto;
   background-color: #f7f9fc;
+}
+
+/* Backdrop overlay (mobile) */
+.sidebar-backdrop {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .layout-sidebar {
+    width: 0;
+    overflow: visible;
+  }
+
+  .layout-content {
+    padding: 16px;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 64px 0 0 0;
+    /* debajo del topbar */
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 90;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+
+  .sidebar-backdrop--visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .layout-content {
+    padding: 12px;
+  }
 }
