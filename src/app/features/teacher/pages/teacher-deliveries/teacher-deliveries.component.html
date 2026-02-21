@@ -194,3 +194,128 @@
     </div>
   </div>
 </div>
+
+<div class="modal-backdrop" *ngIf="evidenceViewerOpen" (click)="closeEvidenceViewer()">
+  <div class="evidence-viewer-modal" (click)="$event.stopPropagation()">
+    <div class="evidence-viewer-header">
+      <div>
+        <h3>{{ evidenceViewerTitle || 'Evidencia' }}</h3>
+        <p class="evidence-viewer-meta">{{ evidenceViewerMimeType || 'Archivo' }}</p>
+      </div>
+      <button class="btn btn-secondary" type="button" (click)="closeEvidenceViewer()">Cerrar</button>
+    </div>
+
+    <div class="evidence-viewer-body">
+      <div class="state-banner info" *ngIf="evidenceViewerLoading">Cargando evidencia...</div>
+      <div class="state-banner" *ngIf="!evidenceViewerLoading && evidenceViewerError">{{ evidenceViewerError }}</div>
+      <ng-container *ngIf="!evidenceViewerLoading && !evidenceViewerError">
+        <iframe
+          *ngIf="evidenceViewerMode === 'pdf' || evidenceViewerMode === 'iframe'"
+          class="evidence-frame"
+          [src]="evidenceViewerSafeUrl"
+          title="Vista previa de evidencia">
+        </iframe>
+
+        <img
+          *ngIf="evidenceViewerMode === 'image'"
+          class="evidence-image"
+          [src]="evidenceViewerObjectUrl || ''"
+          alt="Vista previa de evidencia" />
+
+        <video
+          *ngIf="evidenceViewerMode === 'video'"
+          class="evidence-media"
+          [src]="evidenceViewerObjectUrl || ''"
+          controls>
+        </video>
+
+        <audio
+          *ngIf="evidenceViewerMode === 'audio'"
+          class="evidence-media audio"
+          [src]="evidenceViewerObjectUrl || ''"
+          controls>
+        </audio>
+
+        <pre *ngIf="evidenceViewerMode === 'text'" class="evidence-text">{{ evidenceViewerTextContent }}</pre>
+
+        <div *ngIf="evidenceViewerMode === 'docx'" class="docx-wrapper">
+          <div class="docx-content" [innerHTML]="evidenceViewerDocxHtml"></div>
+        </div>
+
+        <div *ngIf="evidenceViewerMode === 'presentation'" class="slides-wrapper">
+          <div class="slides-empty" *ngIf="!evidenceViewerSlides.length">No se encontró contenido de diapositivas.</div>
+          <section class="slide-card" *ngFor="let slide of evidenceViewerSlides; let i = index">
+            <header class="slide-title">{{ slide.title || ('Diapositiva ' + (i + 1)) }}</header>
+            <ul class="slide-lines">
+              <li *ngFor="let line of slide.lines">{{ line }}</li>
+            </ul>
+          </section>
+        </div>
+
+        <div *ngIf="evidenceViewerMode === 'spreadsheet'" class="sheet-wrapper">
+          <div class="sheet-empty" *ngIf="!evidenceViewerSheetRows.length">La hoja no contiene datos visibles.</div>
+          <table class="sheet-table" *ngIf="evidenceViewerSheetRows.length">
+            <tbody>
+              <tr *ngFor="let row of evidenceViewerSheetRows; let rowIdx = index">
+                <th class="sheet-row-index">{{ rowIdx + 1 }}</th>
+                <td *ngFor="let colIdx of evidenceViewerSheetCols">{{ row[colIdx] }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="sheet-note" *ngIf="evidenceViewerSheetRows.length >= 300">
+            Mostrando las primeras 300 filas.
+          </div>
+        </div>
+
+        <div *ngIf="evidenceViewerMode === 'unsupported'" class="evidence-empty">
+          Este formato no se puede previsualizar dentro de la app.
+        </div>
+
+        <div class="viewer-comment-box" *ngIf="evidenceViewerDetail?.evidence_id">
+          <label for="teacher-evidence-note">Comentario de revision</label>
+          <textarea
+            id="teacher-evidence-note"
+            [(ngModel)]="evidenceViewerCommentDraft"
+            (ngModelChange)="evidenceViewerReviewMessage = ''"
+            placeholder="Escribe una nota rapida para este archivo...">
+          </textarea>
+          <div class="viewer-grade-row">
+            <label for="teacher-evidence-grade">Calificacion</label>
+            <input
+              id="teacher-evidence-grade"
+              type="number"
+              min="0"
+              max="10"
+              step="0.1"
+              [(ngModel)]="evidenceViewerGradeDraft"
+              (ngModelChange)="evidenceViewerReviewMessage = ''"
+              placeholder="0 - 10" />
+          </div>
+          <div class="viewer-comment-actions">
+            <button class="btn btn-secondary" type="button" (click)="clearEvidenceViewerComment()">Limpiar</button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              [disabled]="evidenceViewerReviewLoading"
+              (click)="reviewEvidenceWithComment('approved')">
+              Calificar con comentario
+            </button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="evidenceViewerReviewLoading"
+              (click)="reviewEvidenceWithComment('changes_requested')">
+              Solicitar cambios con comentario
+            </button>
+            <span class="viewer-comment-state review" *ngIf="evidenceViewerReviewMessage">{{ evidenceViewerReviewMessage }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="evidence-viewer-actions">
+      <button class="btn btn-secondary" type="button" (click)="closeEvidenceViewer()">Cerrar</button>
+      <button class="btn btn-primary" type="button" (click)="downloadEvidenceFromViewer()">Descargar</button>
+    </div>
+  </div>
+</div>

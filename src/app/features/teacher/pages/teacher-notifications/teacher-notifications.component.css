@@ -10,6 +10,13 @@
   padding: 18px 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .page-title {
   margin: 0;
   font-size: 40px;
@@ -31,6 +38,23 @@
   background: #e0f2fe;
   color: #0c4a6e;
   border-color: #bae6fd;
+}
+
+.state-banner.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.btn-danger-soft {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fff1f2;
+}
+
+.btn-danger-soft:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .summary {
@@ -156,6 +180,16 @@
 }
 
 @media (max-width: 480px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .page-title {
     font-size: 28px;
   }

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
   Subject,
@@ -19,9 +20,29 @@ import type {
   TeacherSubmissionDetail,
   TeacherSubmissionListItem,
 } from '../../../../core/models/teacher.models';
+import { EvidenceService } from '../../../../core/data-access/evidence.service';
 import { TeacherService } from '../../data-access/teacher.service';
 
 type StatusFilter = 'pending' | 'approved' | 'changes_requested' | 'all';
+type EvidenceViewerMode =
+  | 'pdf'
+  | 'image'
+  | 'text'
+  | 'video'
+  | 'audio'
+  | 'docx'
+  | 'presentation'
+  | 'spreadsheet'
+  | 'iframe'
+  | 'unsupported';
+
+interface ViewerSlide {
+  title: string;
+  lines: string[];
+}
+
+type EvidenceViewerStorageKind = 'comment';
+
 type DeliverySuggestion = {
   id: string;
   query: string;
@@ -69,6 +90,25 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   detail: TeacherSubmissionDetail | null = null;
   feedbackDraft = '';
 
+  evidenceViewerOpen = false;
+  evidenceViewerLoading = false;
+  evidenceViewerError = '';
+  evidenceViewerMode: EvidenceViewerMode = 'unsupported';
+  evidenceViewerTitle = '';
+  evidenceViewerMimeType = '';
+  evidenceViewerTextContent = '';
+  evidenceViewerDocxHtml = '';
+  evidenceViewerSlides: ViewerSlide[] = [];
+  evidenceViewerSheetRows: string[][] = [];
+  evidenceViewerSheetCols: number[] = [];
+  evidenceViewerObjectUrl: string | null = null;
+  evidenceViewerSafeUrl: SafeResourceUrl | null = null;
+  evidenceViewerDetail: TeacherSubmissionDetail | null = null;
+  evidenceViewerCommentDraft = '';
+  evidenceViewerGradeDraft = '';
+  evidenceViewerReviewLoading = false;
+  evidenceViewerReviewMessage = '';
+
   private sub?: Subscription;
   private queryParamSub?: Subscription;
   private searchSub?: Subscription;
@@ -76,6 +116,8 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
 
   constructor(
     private teacherService: TeacherService,
+    private evidenceService: EvidenceService,
+    private sanitizer: DomSanitizer,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -106,6 +148,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
     this.queryParamSub?.unsubscribe();
     this.searchSub?.unsubscribe();
+    this.revokeEvidenceViewerUrl();
   }
 
   get totalPages(): number {
@@ -204,8 +247,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
 
   goToEvidence(detail: TeacherSubmissionDetail): void {
     if (!detail?.course_id || !detail?.evidence_id) return;
-    this.closeDetail();
-    this.router.navigate(['/projects', detail.course_id, 'evidence', detail.evidence_id]);
+    this.openEvidenceViewer(detail);
   }
 
   review(status: 'approved' | 'changes_requested', goNext: boolean): void {
@@ -397,5 +439,389 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     }
 
     return suggestions;
+  }
+
+  openEvidenceViewer(detail: TeacherSubmissionDetail): void {
+    if (!detail?.evidence_id) return;
+
+    this.evidenceViewerOpen = true;
+    this.evidenceViewerLoading = true;
+    this.evidenceViewerError = '';
+    this.evidenceViewerMode = 'unsupported';
+    this.evidenceViewerTitle = detail.evidence_title || 'Evidencia';
+    this.evidenceViewerMimeType = '';
+    this.evidenceViewerTextContent = '';
+    this.evidenceViewerDocxHtml = '';
+    this.evidenceViewerSlides = [];
+    this.evidenceViewerSheetRows = [];
+    this.evidenceViewerSheetCols = [];
+    this.evidenceViewerDetail = detail;
+    this.evidenceViewerReviewLoading = false;
+    this.evidenceViewerReviewMessage = '';
+    this.evidenceViewerGradeDraft = '';
+    this.loadEvidenceViewerComment(detail.evidence_id);
+    this.revokeEvidenceViewerUrl();
+
+    this.evidenceService.downloadEvidenceFile(detail.evidence_id).subscribe({
+      next: (blob) => {
+        void this.prepareEvidenceViewer(blob, detail.evidence_title || '');
+      },
+      error: (err: unknown) => {
+        this.evidenceViewerLoading = false;
+        this.evidenceViewerError = 'No se pudo abrir la evidencia.';
+        this.detailError =
+          typeof err === 'string' ? err : (err as { message?: string })?.message || '';
+      },
+    });
+  }
+
+  closeEvidenceViewer(): void {
+    this.saveEvidenceViewerComment();
+    this.evidenceViewerOpen = false;
+    this.evidenceViewerLoading = false;
+    this.evidenceViewerError = '';
+    this.evidenceViewerMode = 'unsupported';
+    this.evidenceViewerTitle = '';
+    this.evidenceViewerMimeType = '';
+    this.evidenceViewerTextContent = '';
+    this.evidenceViewerDocxHtml = '';
+    this.evidenceViewerSlides = [];
+    this.evidenceViewerSheetRows = [];
+    this.evidenceViewerSheetCols = [];
+    this.evidenceViewerDetail = null;
+    this.evidenceViewerCommentDraft = '';
+    this.evidenceViewerGradeDraft = '';
+    this.evidenceViewerReviewLoading = false;
+    this.evidenceViewerReviewMessage = '';
+    this.revokeEvidenceViewerUrl();
+  }
+
+  saveEvidenceViewerComment(): void {
+    const evidenceId = this.evidenceViewerDetail?.evidence_id;
+    if (!evidenceId) return;
+
+    const key = this.getEvidenceViewerStorageKey('comment', evidenceId);
+    const value = this.evidenceViewerCommentDraft.trim();
+    if (!value) {
+      this.safeStorageRemove(key);
+      return;
+    }
+    this.safeStorageSet(key, value);
+  }
+
+  clearEvidenceViewerComment(): void {
+    const evidenceId = this.evidenceViewerDetail?.evidence_id;
+    if (!evidenceId) return;
+    const key = this.getEvidenceViewerStorageKey('comment', evidenceId);
+    this.evidenceViewerCommentDraft = '';
+    this.safeStorageRemove(key);
+  }
+
+  reviewEvidenceWithComment(status: 'approved' | 'changes_requested'): void {
+    const detail = this.evidenceViewerDetail;
+    if (!detail?.id) return;
+
+    const feedback = this.evidenceViewerCommentDraft.trim();
+    if (!feedback) {
+      this.evidenceViewerError = 'Escribe un comentario antes de enviar la revision.';
+      return;
+    }
+
+    const parsedGrade = this.parseEvidenceViewerGrade(this.evidenceViewerGradeDraft);
+    if (status === 'approved' && parsedGrade === null) {
+      this.evidenceViewerError = 'Ingresa una calificacion valida (0 a 10) para calificar.';
+      return;
+    }
+
+    const feedbackWithGrade =
+      parsedGrade === null ? feedback : `Calificacion: ${parsedGrade}\n${feedback}`;
+
+    this.saveEvidenceViewerComment();
+    this.evidenceViewerError = '';
+    this.evidenceViewerReviewMessage = '';
+    this.evidenceViewerReviewLoading = true;
+
+    this.teacherService
+      .reviewSubmission(detail.id, {
+        status,
+        feedback: feedbackWithGrade,
+        rubric_scores: parsedGrade === null ? null : { score: parsedGrade },
+      })
+      .subscribe({
+        next: (res) => {
+          this.evidenceViewerReviewLoading = false;
+          this.evidenceViewerReviewMessage =
+            status === 'approved'
+              ? 'Entrega calificada con comentario.'
+              : 'Cambios solicitados con comentario.';
+
+          if (this.detail?.id === detail.id) {
+            this.detail = res.data;
+            this.feedbackDraft = res.data?.feedback || feedbackWithGrade;
+          }
+          this.loadSubmissions();
+        },
+        error: (err: unknown) => {
+          this.evidenceViewerReviewLoading = false;
+          this.evidenceViewerError =
+            typeof err === 'string'
+              ? err
+              : (err as { message?: string })?.message || 'No se pudo guardar la revision.';
+        },
+      });
+  }
+
+  private parseEvidenceViewerGrade(rawValue: string): number | null {
+    const normalized = String(rawValue || '').trim().replace(',', '.');
+    if (!normalized) return null;
+    const value = Number(normalized);
+    if (!Number.isFinite(value)) return null;
+    if (value < 0 || value > 10) return null;
+    return Math.round(value * 100) / 100;
+  }
+
+  downloadEvidenceFromViewer(): void {
+    const evidenceId = this.evidenceViewerDetail?.evidence_id;
+    if (!evidenceId) return;
+
+    this.evidenceService.downloadEvidenceFile(evidenceId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const fileName = (this.evidenceViewerDetail?.evidence_title || 'evidencia').trim();
+        link.download = fileName || 'evidencia';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+    });
+  }
+
+  private async prepareEvidenceViewer(blob: Blob, fileName: string): Promise<void> {
+    try {
+      const effectiveMimeType = (blob.type || '').toLowerCase();
+      this.evidenceViewerMimeType = effectiveMimeType || 'application/octet-stream';
+      this.evidenceViewerMode = this.resolveEvidenceViewerMode(effectiveMimeType, fileName);
+
+      if (this.evidenceViewerMode === 'text') {
+        this.evidenceViewerTextContent = await blob.text();
+        this.evidenceViewerLoading = false;
+        return;
+      }
+
+      if (this.evidenceViewerMode === 'docx') {
+        await this.loadDocx(blob);
+        this.evidenceViewerLoading = false;
+        return;
+      }
+
+      if (this.evidenceViewerMode === 'presentation') {
+        await this.loadPresentation(blob);
+        this.evidenceViewerLoading = false;
+        return;
+      }
+
+      if (this.evidenceViewerMode === 'spreadsheet') {
+        await this.loadSpreadsheet(blob);
+        this.evidenceViewerLoading = false;
+        return;
+      }
+
+      this.evidenceViewerObjectUrl = URL.createObjectURL(blob);
+      if (this.evidenceViewerMode === 'pdf' || this.evidenceViewerMode === 'iframe') {
+        this.evidenceViewerSafeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+          this.evidenceViewerObjectUrl,
+        );
+      }
+      this.evidenceViewerLoading = false;
+    } catch {
+      this.evidenceViewerLoading = false;
+      this.evidenceViewerError = 'No se pudo renderizar esta evidencia.';
+      this.evidenceViewerMode = 'unsupported';
+    }
+  }
+
+  private resolveEvidenceViewerMode(mimeType: string, fileName?: string): EvidenceViewerMode {
+    const mime = (mimeType || '').toLowerCase();
+    const lowerName = (fileName || '').toLowerCase();
+
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+
+    const docxLike =
+      mime.includes('wordprocessingml') ||
+      mime.includes('msword') ||
+      lowerName.endsWith('.docx');
+    if (docxLike) return 'docx';
+
+    const presentationLike =
+      mime.includes('presentationml') ||
+      mime.includes('powerpoint') ||
+      lowerName.endsWith('.pptx');
+    if (presentationLike) return 'presentation';
+
+    const spreadsheetLike =
+      mime.includes('spreadsheetml') ||
+      mime.includes('ms-excel') ||
+      mime.includes('excel') ||
+      lowerName.endsWith('.xlsx') ||
+      lowerName.endsWith('.xls') ||
+      lowerName.endsWith('.csv');
+    if (spreadsheetLike) return 'spreadsheet';
+
+    const iframeFriendly =
+      mime.includes('officedocument') ||
+      mime.includes('rtf') ||
+      mime.includes('html');
+    if (iframeFriendly) return 'iframe';
+
+    const textLike =
+      mime.startsWith('text/') ||
+      mime === 'application/json' ||
+      mime.endsWith('+json') ||
+      mime === 'application/xml' ||
+      mime.endsWith('+xml') ||
+      mime.includes('csv') ||
+      mime.includes('javascript');
+    if (textLike) return 'text';
+
+    return 'unsupported';
+  }
+
+  private async loadSpreadsheet(blob: Blob): Promise<void> {
+    const xlsx = await import('xlsx');
+    const buffer = await blob.arrayBuffer();
+    const workbook = xlsx.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
+
+    if (!sheet) {
+      this.evidenceViewerSheetRows = [];
+      this.evidenceViewerSheetCols = [];
+      this.evidenceViewerError = 'No se pudo leer la hoja del archivo.';
+      return;
+    }
+
+    const rows = xlsx.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+      header: 1,
+      defval: '',
+      blankrows: true,
+    });
+
+    const normalizedRows = rows
+      .slice(0, 300)
+      .map((row) => row.map((cell) => String(cell ?? '')));
+    const maxCols = normalizedRows.reduce((max, row) => Math.max(max, row.length), 0);
+
+    this.evidenceViewerSheetRows = normalizedRows.map((row) => {
+      if (row.length >= maxCols) return row;
+      return [...row, ...new Array(maxCols - row.length).fill('')];
+    });
+    this.evidenceViewerSheetCols = Array.from({ length: maxCols }, (_, idx) => idx);
+  }
+
+  private async loadDocx(blob: Blob): Promise<void> {
+    const mammothModule = await import('mammoth');
+    const mammoth = mammothModule as unknown as {
+      convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
+    };
+    const buffer = await blob.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+    const html = (result?.value || '').trim();
+    this.evidenceViewerDocxHtml = html || '<p>Documento sin contenido visible.</p>';
+  }
+
+  private async loadPresentation(blob: Blob): Promise<void> {
+    const jszipModule = await import('jszip');
+    const JSZipCtor = (jszipModule as { default?: unknown } & Record<string, unknown>).default
+      ? (jszipModule as {
+          default: {
+            loadAsync: (data: ArrayBuffer) => Promise<{ files: Record<string, { async: (type: 'text') => Promise<string> }> }>;
+          };
+        }).default
+      : (jszipModule as {
+          loadAsync: (data: ArrayBuffer) => Promise<{ files: Record<string, { async: (type: 'text') => Promise<string> }> }>;
+        });
+
+    const buffer = await blob.arrayBuffer();
+    const zip = await JSZipCtor.loadAsync(buffer);
+    const slidePaths = Object.keys(zip.files)
+      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
+      .sort((a, b) => this.extractSlideIndex(a) - this.extractSlideIndex(b));
+
+    const slides: ViewerSlide[] = [];
+    for (const [idx, path] of slidePaths.entries()) {
+      const file = zip.files[path];
+      if (!file) continue;
+      const xml = await file.async('text');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'application/xml');
+
+      const taggedTexts = Array.from(doc.getElementsByTagName('a:t')).map((node) =>
+        (node.textContent || '').trim(),
+      );
+      const fallbackTexts = taggedTexts.length
+        ? taggedTexts
+        : Array.from(doc.getElementsByTagName('t')).map((node) => (node.textContent || '').trim());
+
+      const lines = fallbackTexts.filter((line) => !!line);
+      slides.push({
+        title: `Diapositiva ${idx + 1}`,
+        lines: lines.length ? lines : ['(Sin texto extraible en esta diapositiva)'],
+      });
+    }
+
+    this.evidenceViewerSlides = slides.slice(0, 100);
+    if (!this.evidenceViewerSlides.length) {
+      this.evidenceViewerError = 'No se pudo extraer contenido visible del PPTX.';
+    }
+  }
+
+  private extractSlideIndex(path: string): number {
+    const match = path.match(/slide(\d+)\.xml$/i);
+    return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+  }
+
+  private revokeEvidenceViewerUrl(): void {
+    if (this.evidenceViewerObjectUrl) {
+      URL.revokeObjectURL(this.evidenceViewerObjectUrl);
+    }
+    this.evidenceViewerObjectUrl = null;
+    this.evidenceViewerSafeUrl = null;
+  }
+
+  private loadEvidenceViewerComment(evidenceId: string): void {
+    const key = this.getEvidenceViewerStorageKey('comment', evidenceId);
+    this.evidenceViewerCommentDraft = this.safeStorageGet(key);
+  }
+
+  private getEvidenceViewerStorageKey(kind: EvidenceViewerStorageKind, evidenceId: string): string {
+    return `promanage:teacher:evidence:${kind}:${evidenceId}`;
+  }
+
+  private safeStorageGet(key: string): string {
+    try {
+      return localStorage.getItem(key) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private safeStorageSet(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // ignore storage write errors
+    }
+  }
+
+  private safeStorageRemove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore storage write errors
+    }
   }
 }

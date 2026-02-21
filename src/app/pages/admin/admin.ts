@@ -139,8 +139,9 @@ type AdminTab = 'dashboard' | 'users' | 'projects' | 'settings';
     .admin-main {
       flex: 1;
       padding: 2rem;
-      overflow-y: auto;
+      overflow: auto;
       background: var(--slate-50);
+      min-width: 0;
     }
 
     .content-header {
@@ -149,6 +150,10 @@ type AdminTab = 'dashboard' | 'users' | 'projects' | 'settings';
       align-items: center;
       margin-bottom: 2rem;
       gap: 1rem;
+    }
+
+    .content-body {
+      min-width: 0;
     }
 
     .content-header h1 {

@@ -14,7 +14,9 @@
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg, #fff);
+  color: var(--slate-800);
+  border: 1px solid var(--slate-200);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(16,24,40,0.04);
   padding: 1rem;
@@ -30,14 +32,16 @@
   border: 1px solid rgba(16,24,40,0.04);
   padding: 12px;
   border-radius: 8px;
-  background: #fff;
+  background: var(--card-bg, #fff);
 }
 
 .search-input {
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(16,24,40,0.06);
+  border: 1px solid var(--slate-200);
+  background: var(--card-bg, #fff);
+  color: var(--slate-800);
 }
 
 @media (max-width: 900px) {

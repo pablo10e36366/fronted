@@ -2,20 +2,50 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Subject, Subscription, catchError, of } from 'rxjs';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Subject, Subscription, catchError, forkJoin, map, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 import { ProjectService } from '../../core/data-access/project.service';
-import { ProjectDto } from '../../core/models/project.models';
+import { EvidenceService } from '../../core/data-access/evidence.service';
+import { EvidenceDto, ProjectDto } from '../../core/models/project.models';
 import { FileUploadZoneComponent } from '../../components/file-upload-zone/file-upload-zone';
 
 type ProjectStatusType = 'draft' | 'in_progress' | 'in_review' | 'completed';
 
 interface ProjectUI extends ProjectDto {
-  tags: string[];
-  progress: number;
   uiStatus: ProjectStatusType;
 }
+
+interface DocumentRow {
+  evidenceId: string;
+  projectId: string;
+  title: string;
+  projectTitle: string;
+  ownerName: string;
+  ownerEmail: string;
+  mimeType: string;
+  updatedAt?: string;
+}
+
+type DocumentViewerMode =
+  | 'pdf'
+  | 'image'
+  | 'text'
+  | 'video'
+  | 'audio'
+  | 'docx'
+  | 'presentation'
+  | 'spreadsheet'
+  | 'iframe'
+  | 'unsupported';
+
+interface ViewerSlide {
+  title: string;
+  lines: string[];
+}
+
+type DocumentViewerStorageKind = 'comment';
 
 @Component({
   standalone: true,
@@ -28,10 +58,13 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   @ViewChild(FileUploadZoneComponent) fileUploadZone!: FileUploadZoneComponent;
   @ViewChild('newProjectTitle') newProjectTitle?: ElementRef<HTMLInputElement>;
 
+  activeView: 'courses' | 'documents' = 'courses';
+
   projects: ProjectUI[] = [];
   filteredProjects: ProjectUI[] = [];
-  transitionsByProject: Record<string, string[]> = {};
-  loadingTransitionsByProject: Record<string, boolean> = {};
+
+  documents: DocumentRow[] = [];
+  filteredDocuments: DocumentRow[] = [];
 
   kpiTotal = 0;
   kpiReview = 0;
@@ -40,10 +73,8 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
   searchTerm = '';
   searchSubject = new Subject<string>();
-  filterStatus: 'ALL' | ProjectStatusType = 'ALL';
-  filterTech = 'ALL';
 
-  sortBy: 'title' | 'createdAt' | 'progress' | 'status' = 'createdAt';
+  sortBy: 'title' | 'createdAt' = 'createdAt';
   sortDirection: 'asc' | 'desc' = 'desc';
 
   title = '';
@@ -51,6 +82,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
 
   loading = false;
+  loadingDocuments = false;
   errorMessage = '';
   successMessage = '';
 
@@ -59,16 +91,30 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   editTitle = '';
   editDescription = '';
 
-  showForceStatusModal = false;
-  forceStatusProject: ProjectUI | null = null;
-  forceStatusValue: ProjectStatusType = 'draft';
-  forceStatusReason = '';
+  showDocumentViewer = false;
+  viewerLoading = false;
+  viewerError = '';
+  viewerMode: DocumentViewerMode = 'unsupported';
+  viewerTitle = '';
+  viewerMimeType = '';
+  viewerTextContent = '';
+  viewerDocxHtml = '';
+  viewerSlides: ViewerSlide[] = [];
+  viewerSheetRows: string[][] = [];
+  viewerSheetCols: number[] = [];
+  viewerObjectUrl: string | null = null;
+  viewerSafeUrl: SafeResourceUrl | null = null;
+  viewingDocument: DocumentRow | null = null;
+  viewerCommentDraft = '';
+  viewerCommentSaved = false;
 
   private subscriptions = new Subscription();
 
   constructor(
     private projectsService: ProjectService,
+    private evidenceService: EvidenceService,
     private router: Router,
+    private sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit(): void {
@@ -78,6 +124,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    this.revokeViewerUrl();
   }
 
   private setupSearch(): void {
@@ -105,6 +152,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
         this.projects = projects.map((project) => this.enrichProject(project));
         this.applyFilters();
         this.updateKPIs();
+        this.loadDocuments(this.projects);
         this.loading = false;
       });
 
@@ -112,26 +160,10 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   }
 
   private enrichProject(project: ProjectDto): ProjectUI {
-    const tagsPool = [
-      ['Angular', 'Frontend'],
-      ['NestJS', 'Backend'],
-      ['Design', 'Figma'],
-      ['Docs'],
-      ['Math', 'Calculus'],
-    ];
-    const progressMap: Record<ProjectStatusType, number> = {
-      draft: 10,
-      in_progress: 45,
-      in_review: 75,
-      completed: 100,
-    };
-
     const uiStatus = this.normalizeStatus(project.status);
 
     return {
       ...project,
-      tags: tagsPool[Math.floor(Math.random() * tagsPool.length)],
-      progress: progressMap[uiStatus],
       uiStatus,
     };
   }
@@ -158,6 +190,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
         this.projects = projects.map((project) => this.enrichProject(project));
         this.applyFilters();
         this.updateKPIs();
+        this.loadDocuments(this.projects);
         this.loading = false;
       },
       error: (err) => {
@@ -172,24 +205,28 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   applyFilters(): void {
     const normalizedSearchTerm = this.searchTerm.toLowerCase().trim();
     this.filteredProjects = this.projects.filter((project) => {
-      const matchesSearch =
+      return (
         !normalizedSearchTerm ||
         project.title.toLowerCase().includes(normalizedSearchTerm) ||
         (project.description || '').toLowerCase().includes(normalizedSearchTerm) ||
-        project.tags.some((tag) => tag.toLowerCase().includes(normalizedSearchTerm)) ||
-        (project.owner?.name || '').toLowerCase().includes(normalizedSearchTerm);
-
-      const matchesStatus =
-        this.filterStatus === 'ALL' || this.normalizeStatus(project.status) === this.filterStatus;
-
-      const matchesTech =
-        this.filterTech === 'ALL' ||
-        project.tags.some((tag) => tag.toUpperCase().includes(this.filterTech));
-
-      return matchesSearch && matchesStatus && matchesTech;
+        (project.owner?.name || '').toLowerCase().includes(normalizedSearchTerm)
+      );
     });
 
     this.applySorting();
+  }
+
+  private applyDocumentFilters(): void {
+    const normalizedSearchTerm = this.searchTerm.toLowerCase().trim();
+    this.filteredDocuments = this.documents.filter((document) => {
+      return (
+        !normalizedSearchTerm ||
+        document.title.toLowerCase().includes(normalizedSearchTerm) ||
+        document.projectTitle.toLowerCase().includes(normalizedSearchTerm) ||
+        document.ownerName.toLowerCase().includes(normalizedSearchTerm) ||
+        document.mimeType.toLowerCase().includes(normalizedSearchTerm)
+      );
+    });
   }
 
   updateKPIs(): void {
@@ -201,10 +238,28 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
   onSearch(term: string): void {
     this.searchTerm = term;
+    if (this.activeView === 'documents') {
+      this.applyDocumentFilters();
+      return;
+    }
+
     this.searchSubject.next(term);
     if (!term.trim()) {
       this.applyFilters();
     }
+  }
+
+  setActiveView(view: 'courses' | 'documents'): void {
+    if (this.activeView === view) return;
+    this.activeView = view;
+    this.searchTerm = '';
+
+    if (view === 'courses') {
+      this.applyFilters();
+      return;
+    }
+
+    this.applyDocumentFilters();
   }
 
   applySorting(): void {
@@ -220,14 +275,6 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
         case 'createdAt':
           leftValue = leftProject.createdAt ? new Date(leftProject.createdAt).getTime() : 0;
           rightValue = rightProject.createdAt ? new Date(rightProject.createdAt).getTime() : 0;
-          break;
-        case 'progress':
-          leftValue = leftProject.progress;
-          rightValue = rightProject.progress;
-          break;
-        case 'status':
-          leftValue = leftProject.uiStatus;
-          rightValue = rightProject.uiStatus;
           break;
       }
 
@@ -257,7 +304,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
   createProject(): void {
     if (!this.title.trim()) {
-      this.errorMessage = 'El título del proyecto es obligatorio.';
+      this.errorMessage = 'El titulo del proyecto es obligatorio.';
       return;
     }
 
@@ -286,18 +333,21 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   }
 
   exportProjects(): void {
-    if (!this.filteredProjects.length) {
-      this.errorMessage = 'No hay proyectos para exportar.';
+    if (this.activeView === 'documents') {
+      this.exportDocuments();
       return;
     }
 
-    const headers = ['id', 'titulo', 'descripcion', 'estado', 'progreso', 'propietario', 'fecha_creacion'];
+    if (!this.filteredProjects.length) {
+      this.errorMessage = 'No hay cursos para exportar.';
+      return;
+    }
+
+    const headers = ['id', 'curso', 'descripcion', 'propietario', 'fecha_creacion'];
     const rows = this.filteredProjects.map((project) => [
       project.id,
       project.title,
       project.description || '',
-      this.getStatusLabel(project.uiStatus),
-      `${project.progress}%`,
       project.owner?.name || '',
       project.createdAt || '',
     ]);
@@ -314,7 +364,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `proyectos-admin-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `cursos-admin-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
   }
@@ -330,6 +380,53 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
         const link = document.createElement('a');
         link.href = url;
         link.download = project.filename || `${project.title}.zip`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.handleError(err),
+    });
+    this.subscriptions.add(sub);
+  }
+
+  viewDocument(doc: DocumentRow): void {
+    this.showDocumentViewer = true;
+    this.viewerLoading = true;
+    this.viewerError = '';
+    this.viewerMode = 'unsupported';
+    this.viewerTextContent = '';
+    this.viewerDocxHtml = '';
+    this.viewerSlides = [];
+    this.viewerSheetRows = [];
+    this.viewerSheetCols = [];
+    this.viewerTitle = doc.title || 'Documento';
+    this.viewerMimeType = doc.mimeType || '';
+    this.viewingDocument = doc;
+    this.viewerCommentSaved = false;
+    this.loadViewerComment(doc.evidenceId);
+    this.revokeViewerUrl();
+
+    const sub = this.evidenceService.downloadEvidenceFile(doc.evidenceId).subscribe({
+      next: (blob) => {
+        void this.prepareDocumentViewer(doc, blob);
+      },
+      error: (err) => {
+        this.viewerLoading = false;
+        this.viewerError = 'No se pudo abrir el documento.';
+        this.handleError(err);
+      },
+    });
+
+    this.subscriptions.add(sub);
+  }
+
+  downloadDocument(doc: DocumentRow): void {
+    const sub = this.evidenceService.downloadEvidenceFile(doc.evidenceId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const baseName = (doc.title || 'documento').trim();
+        link.download = baseName.includes('.') ? baseName : `${baseName}.bin`;
         link.click();
         window.URL.revokeObjectURL(url);
       },
@@ -355,7 +452,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   saveEdit(): void {
     if (!this.editingProject) return;
     if (!this.editTitle.trim()) {
-      this.errorMessage = 'El título no puede estar vacío.';
+      this.errorMessage = 'El titulo no puede estar vacio.';
       return;
     }
 
@@ -382,7 +479,7 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   }
 
   deleteProject(projectId: string): void {
-    if (!confirm('¿Seguro que deseas eliminar este proyecto? Esta acción no se puede deshacer.')) {
+    if (!confirm('Seguro que deseas eliminar este proyecto? Esta accion no se puede deshacer.')) {
       return;
     }
 
@@ -397,105 +494,45 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     this.subscriptions.add(sub);
   }
 
-  loadTransitions(projectId: string): void {
-    if (this.transitionsByProject[projectId]) return;
-    this.loadingTransitionsByProject[projectId] = true;
-
-    const sub = this.projectsService.getProjectTransitions(projectId).subscribe({
-      next: (response) => {
-        this.transitionsByProject[projectId] = response.availableStates || [];
-        this.loadingTransitionsByProject[projectId] = false;
-      },
-      error: () => {
-        this.transitionsByProject[projectId] = [];
-        this.loadingTransitionsByProject[projectId] = false;
-      },
-    });
-
-    this.subscriptions.add(sub);
-  }
-
-  getTransitions(projectId: string): string[] {
-    return this.transitionsByProject[projectId] || [];
-  }
-
-  changeProjectStatus(project: ProjectUI, newStatus: string): void {
-    if (!newStatus || newStatus === this.normalizeStatus(project.status)) return;
-    this.loading = true;
-
-    const sub = this.projectsService.changeProjectStatus(project.id, newStatus).subscribe({
-      next: (updatedProject) => {
-        this.updateProjectInList(updatedProject);
-        this.successMessage = `Estado actualizado a ${this.getStatusLabel(newStatus)}.`;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.loading = false;
-        this.handleError(err);
-      },
-    });
-
-    this.subscriptions.add(sub);
-  }
-
-  openForceStatusModal(project: ProjectUI): void {
-    this.forceStatusProject = project;
-    this.forceStatusValue = this.normalizeStatus(project.status);
-    this.forceStatusReason = '';
-    this.showForceStatusModal = true;
-  }
-
-  closeForceStatusModal(): void {
-    this.showForceStatusModal = false;
-    this.forceStatusProject = null;
-    this.forceStatusValue = 'draft';
-    this.forceStatusReason = '';
-  }
-
-  confirmForceStatus(): void {
-    if (!this.forceStatusProject) return;
-    if (!this.forceStatusReason.trim()) {
-      this.errorMessage = 'Debes indicar la razón del cambio forzado.';
+  private loadDocuments(projects: ProjectUI[]): void {
+    if (!projects.length) {
+      this.documents = [];
+      this.filteredDocuments = [];
       return;
     }
 
-    this.loading = true;
-    const sub = this.projectsService
-      .forceStatusChange(
-        this.forceStatusProject.id,
-        this.forceStatusValue,
-        this.forceStatusReason.trim(),
-      )
-      .subscribe({
-        next: (updatedProject) => {
-          this.updateProjectInList(updatedProject);
-          this.successMessage = 'Estado forzado correctamente.';
-          this.closeForceStatusModal();
-          this.loading = false;
-        },
-        error: (err) => {
-          this.loading = false;
-          this.handleError(err);
-        },
-      });
+    this.loadingDocuments = true;
+    const requests = projects.map((project) =>
+      this.evidenceService.getFiles(project.id).pipe(
+        map((files) => ({
+          project,
+          files: (files || []).filter((file) => !file.isFolder),
+        })),
+        catchError(() => of({ project, files: [] as EvidenceDto[] })),
+      ),
+    );
 
-    this.subscriptions.add(sub);
-  }
-
-  archiveProject(project: ProjectUI): void {
-    if (!confirm(`¿Archivar el proyecto "${project.title}"?`)) return;
-
-    const reason = prompt('Razón del archivado (obligatoria):', 'Archivado por administración');
-    if (!reason || !reason.trim()) return;
-
-    this.loading = true;
-    const sub = this.projectsService.archiveProject(project.id, reason.trim()).subscribe({
-      next: () => {
-        this.successMessage = 'Proyecto archivado correctamente.';
-        this.loadProjects();
+    const sub = forkJoin(requests).subscribe({
+      next: (results) => {
+        this.documents = results.flatMap(({ project, files }) =>
+          files.map((file) => ({
+            evidenceId: file.id,
+            projectId: project.id,
+            title: file.title || 'Documento',
+            projectTitle: project.title || 'Curso',
+            ownerName: project.owner?.name || 'Sin propietario',
+            ownerEmail: project.owner?.email || 'N/A',
+            mimeType: file.mimeType || 'Archivo',
+            updatedAt: file.updatedAt,
+          })),
+        );
+        this.applyDocumentFilters();
+        this.loadingDocuments = false;
       },
       error: (err) => {
-        this.loading = false;
+        this.loadingDocuments = false;
+        this.documents = [];
+        this.filteredDocuments = [];
         this.handleError(err);
       },
     });
@@ -503,37 +540,312 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     this.subscriptions.add(sub);
   }
 
-  getStatusLabel(status: string): string {
-    switch (this.normalizeStatus(status)) {
-      case 'draft':
-        return 'Borrador';
-      case 'in_progress':
-        return 'En progreso';
-      case 'in_review':
-        return 'En revisión';
-      case 'completed':
-        return 'Completado';
-      default:
-        return status;
+  private exportDocuments(): void {
+    if (!this.filteredDocuments.length) {
+      this.errorMessage = 'No hay documentos para exportar.';
+      return;
     }
-  }
 
-  private updateProjectInList(updatedProject: ProjectDto): void {
-    const updatedUiProject = this.enrichProject(updatedProject);
-    const index = this.projects.findIndex((project) => project.id === updatedProject.id);
-    if (index >= 0) {
-      this.projects[index] = updatedUiProject;
-    } else {
-      this.projects.unshift(updatedUiProject);
-    }
-    this.applyFilters();
-    this.updateKPIs();
+    const headers = ['id', 'documento', 'curso', 'propietario', 'tipo', 'actualizado'];
+    const rows = this.filteredDocuments.map((document) => [
+      document.evidenceId,
+      document.title,
+      document.projectTitle,
+      document.ownerName,
+      document.mimeType,
+      document.updatedAt || '',
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(','),
+      )
+      .join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `documentos-admin-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   }
 
   private handleError(error: unknown): void {
     this.errorMessage =
       typeof error === 'string'
         ? error
-        : (error as { message?: string })?.message || 'No se pudo completar la operación.';
+        : (error as { message?: string })?.message || 'No se pudo completar la operacion.';
+  }
+
+  closeDocumentViewer(): void {
+    this.saveViewerComment();
+    this.showDocumentViewer = false;
+    this.viewerLoading = false;
+    this.viewerError = '';
+    this.viewerMode = 'unsupported';
+    this.viewerTextContent = '';
+    this.viewerDocxHtml = '';
+    this.viewerSlides = [];
+    this.viewerSheetRows = [];
+    this.viewerSheetCols = [];
+    this.viewerTitle = '';
+    this.viewerMimeType = '';
+    this.viewingDocument = null;
+    this.viewerCommentDraft = '';
+    this.viewerCommentSaved = false;
+    this.revokeViewerUrl();
+  }
+
+  saveViewerComment(): void {
+    const evidenceId = this.viewingDocument?.evidenceId;
+    if (!evidenceId) return;
+
+    const key = this.getDocumentViewerStorageKey('comment', evidenceId);
+    const value = this.viewerCommentDraft.trim();
+    if (!value) {
+      this.safeStorageRemove(key);
+      this.viewerCommentSaved = false;
+      return;
+    }
+    this.safeStorageSet(key, value);
+    this.viewerCommentSaved = true;
+  }
+
+  clearViewerComment(): void {
+    const evidenceId = this.viewingDocument?.evidenceId;
+    if (!evidenceId) return;
+    const key = this.getDocumentViewerStorageKey('comment', evidenceId);
+    this.viewerCommentDraft = '';
+    this.safeStorageRemove(key);
+    this.viewerCommentSaved = false;
+  }
+
+  private async prepareDocumentViewer(doc: DocumentRow, blob: Blob): Promise<void> {
+    try {
+      const effectiveMimeType = (blob.type || doc.mimeType || 'application/octet-stream').toLowerCase();
+      this.viewerMimeType = effectiveMimeType;
+      this.viewerMode = this.resolveViewerMode(effectiveMimeType, doc.title);
+
+      if (this.viewerMode === 'text') {
+        this.viewerTextContent = await blob.text();
+        this.viewerLoading = false;
+        return;
+      }
+
+      if (this.viewerMode === 'docx') {
+        await this.loadDocx(blob);
+        this.viewerLoading = false;
+        return;
+      }
+
+      if (this.viewerMode === 'presentation') {
+        await this.loadPresentation(blob);
+        this.viewerLoading = false;
+        return;
+      }
+
+      if (this.viewerMode === 'spreadsheet') {
+        await this.loadSpreadsheet(blob);
+        this.viewerLoading = false;
+        return;
+      }
+
+      this.viewerObjectUrl = URL.createObjectURL(blob);
+      if (this.viewerMode === 'pdf' || this.viewerMode === 'iframe') {
+        this.viewerSafeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.viewerObjectUrl);
+      }
+      this.viewerLoading = false;
+    } catch {
+      this.viewerLoading = false;
+      this.viewerMode = 'unsupported';
+      this.viewerError = 'No se pudo renderizar este archivo.';
+    }
+  }
+
+  private resolveViewerMode(mimeType: string, fileName?: string): DocumentViewerMode {
+    const mime = (mimeType || '').toLowerCase();
+    const lowerName = (fileName || '').toLowerCase();
+
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+
+    const docxLike =
+      mime.includes('wordprocessingml') ||
+      mime.includes('msword') ||
+      lowerName.endsWith('.docx');
+    if (docxLike) return 'docx';
+
+    const presentationLike =
+      mime.includes('presentationml') ||
+      mime.includes('powerpoint') ||
+      lowerName.endsWith('.pptx');
+    if (presentationLike) return 'presentation';
+
+    const spreadsheetLike =
+      mime.includes('spreadsheetml') ||
+      mime.includes('ms-excel') ||
+      mime.includes('excel') ||
+      lowerName.endsWith('.xlsx') ||
+      lowerName.endsWith('.xls') ||
+      lowerName.endsWith('.csv');
+    if (spreadsheetLike) return 'spreadsheet';
+
+    const iframeFriendly =
+      mime.includes('officedocument') ||
+      mime.includes('msword') ||
+      mime.includes('msexcel') ||
+      mime.includes('powerpoint') ||
+      mime.includes('spreadsheetml') ||
+      mime.includes('presentationml') ||
+      mime.includes('wordprocessingml') ||
+      mime.includes('rtf') ||
+      mime.includes('html');
+    if (iframeFriendly) return 'iframe';
+
+    const textLike =
+      mime.startsWith('text/') ||
+      mime === 'application/json' ||
+      mime.endsWith('+json') ||
+      mime === 'application/xml' ||
+      mime.endsWith('+xml') ||
+      mime.includes('csv') ||
+      mime.includes('javascript');
+    if (textLike) return 'text';
+
+    return 'unsupported';
+  }
+
+  private async loadDocx(blob: Blob): Promise<void> {
+    const mammothModule = await import('mammoth');
+    const mammoth = mammothModule as unknown as {
+      convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
+    };
+    const buffer = await blob.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+    const html = (result?.value || '').trim();
+    this.viewerDocxHtml = html || '<p>Documento sin contenido visible.</p>';
+  }
+
+  private async loadPresentation(blob: Blob): Promise<void> {
+    const jszipModule = await import('jszip');
+    const JSZipCtor = (jszipModule as { default?: unknown } & Record<string, unknown>).default
+      ? (jszipModule as { default: { loadAsync: (data: ArrayBuffer) => Promise<{ files: Record<string, { async: (type: 'text') => Promise<string> }> }> } }).default
+      : (jszipModule as { loadAsync: (data: ArrayBuffer) => Promise<{ files: Record<string, { async: (type: 'text') => Promise<string> }> }> });
+
+    const buffer = await blob.arrayBuffer();
+    const zip = await JSZipCtor.loadAsync(buffer);
+    const slidePaths = Object.keys(zip.files)
+      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
+      .sort((a, b) => this.extractSlideIndex(a) - this.extractSlideIndex(b));
+
+    const slides: ViewerSlide[] = [];
+    for (const [idx, path] of slidePaths.entries()) {
+      const file = zip.files[path];
+      if (!file) continue;
+      const xml = await file.async('text');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'application/xml');
+
+      const taggedTexts = Array.from(doc.getElementsByTagName('a:t')).map((node) =>
+        (node.textContent || '').trim(),
+      );
+      const fallbackTexts = taggedTexts.length
+        ? taggedTexts
+        : Array.from(doc.getElementsByTagName('t')).map((node) => (node.textContent || '').trim());
+
+      const lines = fallbackTexts.filter((line) => !!line);
+      slides.push({
+        title: `Diapositiva ${idx + 1}`,
+        lines: lines.length ? lines : ['(Sin texto extraible en esta diapositiva)'],
+      });
+    }
+
+    this.viewerSlides = slides.slice(0, 100);
+    if (!this.viewerSlides.length) {
+      this.viewerError = 'No se pudo extraer contenido visible del PPTX.';
+    }
+  }
+
+  private extractSlideIndex(path: string): number {
+    const match = path.match(/slide(\d+)\.xml$/i);
+    return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+  }
+
+  private async loadSpreadsheet(blob: Blob): Promise<void> {
+    const xlsx = await import('xlsx');
+    const buffer = await blob.arrayBuffer();
+    const workbook = xlsx.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
+
+    if (!sheet) {
+      this.viewerSheetRows = [];
+      this.viewerSheetCols = [];
+      this.viewerError = 'No se pudo leer la hoja del archivo.';
+      return;
+    }
+
+    const rows = xlsx.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+      header: 1,
+      defval: '',
+      blankrows: true,
+    });
+
+    const normalizedRows = rows
+      .slice(0, 300)
+      .map((row) => row.map((cell) => String(cell ?? '')));
+    const maxCols = normalizedRows.reduce((max, row) => Math.max(max, row.length), 0);
+
+    this.viewerSheetRows = normalizedRows.map((row) => {
+      if (row.length >= maxCols) return row;
+      return [...row, ...new Array(maxCols - row.length).fill('')];
+    });
+    this.viewerSheetCols = Array.from({ length: maxCols }, (_, idx) => idx);
+  }
+
+  private revokeViewerUrl(): void {
+    if (this.viewerObjectUrl) {
+      URL.revokeObjectURL(this.viewerObjectUrl);
+    }
+    this.viewerObjectUrl = null;
+    this.viewerSafeUrl = null;
+  }
+
+  private loadViewerComment(evidenceId: string): void {
+    const key = this.getDocumentViewerStorageKey('comment', evidenceId);
+    this.viewerCommentDraft = this.safeStorageGet(key);
+  }
+
+  private getDocumentViewerStorageKey(kind: DocumentViewerStorageKind, evidenceId: string): string {
+    return `promanage:admin:document:${kind}:${evidenceId}`;
+  }
+
+  private safeStorageGet(key: string): string {
+    try {
+      return localStorage.getItem(key) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private safeStorageSet(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // ignore storage write errors
+    }
+  }
+
+  private safeStorageRemove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore storage write errors
+    }
   }
 }

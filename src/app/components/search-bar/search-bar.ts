@@ -71,7 +71,7 @@ import { Router } from '@angular/router';
       left: 14px;
       width: 18px;
       height: 18px;
-      color: #667eea;
+      color: var(--primary-600);
       pointer-events: none;
       transition: color 0.2s;
     }
@@ -79,23 +79,23 @@ import { Router } from '@angular/router';
     input {
       width: 100%;
       padding: 0.75rem 1rem 0.75rem 2.75rem;
-      border: 2px solid rgba(102, 126, 234, 0.2);
+      border: 2px solid rgba(102, 126, 234, 0.24);
       border-radius: 12px;
       font-size: 0.9rem;
-      background: rgba(248, 250, 252, 0.8);
-      color: #1e293b;
+      background: rgba(248, 250, 252, 0.86);
+      color: var(--slate-800);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       outline: none;
     }
 
     input:focus {
-      background: white;
-      border-color: #667eea;
+      background: var(--card-bg, #fff);
+      border-color: var(--primary-600);
       box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
     }
 
     input::placeholder {
-      color: #94a3b8;
+      color: var(--slate-400);
     }
 
     .suggestions-panel {
@@ -103,8 +103,8 @@ import { Router } from '@angular/router';
       top: calc(100% + 8px);
       left: 0;
       right: 0;
-      background: white;
-      border: 1px solid rgba(102, 126, 234, 0.1);
+      background: var(--card-bg, #fff);
+      border: 1px solid rgba(102, 126, 234, 0.14);
       border-radius: 16px;
       padding: 1rem;
       z-index: 10;
@@ -126,7 +126,7 @@ import { Router } from '@angular/router';
 
     .chip-label {
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--slate-500);
       margin-right: 0.25rem;
       font-weight: 600;
     }
@@ -155,8 +155,8 @@ import { Router } from '@angular/router';
       top: calc(100% + 8px);
       left: 0;
       right: 0;
-      background: white;
-      border: 1px solid rgba(102, 126, 234, 0.1);
+      background: var(--card-bg, #fff);
+      border: 1px solid rgba(102, 126, 234, 0.14);
       border-radius: 16px;
       max-height: 360px;
       overflow-y: auto;
@@ -203,12 +203,55 @@ import { Router } from '@angular/router';
     .result-title {
       font-size: 0.9rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--slate-800);
     }
 
     .result-meta {
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--slate-500);
+    }
+
+    :host-context([data-theme="dark"]) input {
+      background: rgba(15, 23, 42, 0.85);
+      border-color: rgba(99, 102, 241, 0.34);
+    }
+
+    :host-context([data-theme="dark"]) input:focus {
+      background: #0f172a;
+      border-color: #818cf8;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    }
+
+    :host-context([data-theme="dark"]) input::placeholder {
+      color: var(--slate-500);
+    }
+
+    :host-context([data-theme="dark"]) .search-icon {
+      color: #818cf8;
+    }
+
+    :host-context([data-theme="dark"]) .suggestions-panel,
+    :host-context([data-theme="dark"]) .results-dropdown {
+      background: #0f172a;
+      border-color: rgba(148, 163, 184, 0.28);
+      box-shadow: 0 16px 40px rgba(2, 6, 23, 0.55);
+    }
+
+    :host-context([data-theme="dark"]) .chip-label,
+    :host-context([data-theme="dark"]) .result-meta {
+      color: var(--slate-500);
+    }
+
+    :host-context([data-theme="dark"]) .result-title {
+      color: var(--slate-800);
+    }
+
+    :host-context([data-theme="dark"]) .result-item {
+      border-bottom-color: rgba(148, 163, 184, 0.16);
+    }
+
+    :host-context([data-theme="dark"]) .result-item:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(129, 140, 248, 0.08) 100%);
     }
   `]
 })

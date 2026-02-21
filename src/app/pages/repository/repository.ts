@@ -48,6 +48,16 @@ interface Breadcrumb {
           [stats]="repositoryView.stats">
         </app-repository-header>
 
+	        <div class="repository-top-actions" *ngIf="isTeacher">
+	          <button class="btn btn-outline" (click)="goToGeneralCourses()">
+	            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+	              <line x1="19" y1="12" x2="5" y2="12"></line>
+	              <polyline points="12 19 5 12 12 5"></polyline>
+	            </svg>
+	            Volver a vista general de cursos
+	          </button>
+	        </div>
+
 	        <!-- ACCESS CONTROL PANEL (Owner only) -->
 	        <app-access-management-panel
 	          *ngIf="isOwner && !isGodMode"
@@ -291,10 +301,16 @@ interface Breadcrumb {
       </div>
 
       <ng-template #loading>
-        <div class="loading-state">
+        <div class="loading-state" *ngIf="!error; else errorState">
           <div class="spinner"></div>
           <p>Cargando repositorio...</p>
         </div>
+        <ng-template #errorState>
+          <div class="error-state">
+            <p>{{ error }}</p>
+            <button class="btn btn-outline" (click)="goBack()">Volver a cursos</button>
+          </div>
+        </ng-template>
       </ng-template>
 
       <!-- Botón Flotante para Revisar Proyecto -->
@@ -395,6 +411,13 @@ interface Breadcrumb {
     .repository-content {
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    .repository-top-actions {
+      margin: 1rem 0 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
     }
 
     .god-mode-banner {
@@ -888,6 +911,17 @@ interface Breadcrumb {
       color: #64748b;
     }
 
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      height: 60vh;
+      color: #64748b;
+      text-align: center;
+    }
+
     .spinner {
       width: 48px;
       height: 48px;
@@ -1299,6 +1333,14 @@ export class RepositoryComponent implements OnInit {
   }
 
   goBack(): void {
+    this.goToGeneralCourses();
+  }
+
+  goToGeneralCourses(): void {
+    if (this.isTeacher) {
+      this.router.navigate(['/']);
+      return;
+    }
     this.router.navigate(['/projects']);
   }
 

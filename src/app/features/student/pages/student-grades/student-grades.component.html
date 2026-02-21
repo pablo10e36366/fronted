@@ -1,0 +1,94 @@
+<div class="grades-page">
+  <header class="page-header">
+    <div>
+      <h1>Calificaciones</h1>
+      <p class="muted">Revisa tus notas y retroalimentacion por actividad.</p>
+    </div>
+  </header>
+
+  <div class="state-banner info" *ngIf="loading">Cargando calificaciones...</div>
+  <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <section class="summary">
+    <div class="summary-card">
+      <div class="summary-label">Promedio</div>
+      <div class="summary-value">{{ averageGrade | number:'1.0-2' }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Con nota</div>
+      <div class="summary-value">{{ gradedCount }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Aprobadas</div>
+      <div class="summary-value">{{ approvedCount }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Con cambios</div>
+      <div class="summary-value">{{ changesRequestedCount }}</div>
+    </div>
+  </section>
+
+  <section class="card filters">
+    <div class="filters-row">
+      <input
+        class="input"
+        [(ngModel)]="q"
+        (keyup.enter)="applyFilters()"
+        placeholder="Buscar por curso, actividad o feedback..." />
+
+      <select class="input" [(ngModel)]="selectedCourseId" (change)="applyFilters()">
+        <option value="">Todos los cursos</option>
+        <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
+      </select>
+
+      <select class="input" [(ngModel)]="reviewFilter" (change)="applyFilters()">
+        <option value="all">Todos</option>
+        <option value="approved">Aprobado</option>
+        <option value="changes_requested">Cambios solicitados</option>
+        <option value="pending">Pendiente</option>
+      </select>
+
+      <button class="btn btn-primary" type="button" (click)="applyFilters()">Filtrar</button>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="!loading">
+    <table class="table" *ngIf="filteredRows.length; else emptyList">
+      <thead>
+        <tr>
+          <th>Curso</th>
+          <th>Actividad</th>
+          <th>Nota</th>
+          <th>Estado</th>
+          <th>Feedback</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredRows">
+          <td>{{ row.item.course_name || row.item.course_id }}</td>
+          <td>{{ row.item.milestone_title || 'Actividad' }}</td>
+          <td>
+            <span class="grade-pill" [class.grade-pill--empty]="row.grade === null">
+              {{ row.grade === null ? 'Sin nota' : (row.grade | number:'1.0-2') }}
+            </span>
+          </td>
+          <td>
+            <span
+              class="status"
+              [attr.data-status]="row.item.review_outcome === 'APPROVED' ? 'approved' : (row.item.review_outcome === 'CHANGES_REQUESTED' ? 'changes' : 'pending')">
+              {{ row.reviewLabel }}
+            </span>
+          </td>
+          <td class="feedback-cell">{{ row.feedbackText || 'Sin feedback' }}</td>
+          <td>{{ row.item.submitted_at ? (row.item.submitted_at | date:'short') : '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #emptyList>
+      <div class="empty">No hay calificaciones para los filtros actuales.</div>
+    </ng-template>
+  </section>
+</div>
+

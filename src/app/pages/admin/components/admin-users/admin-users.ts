@@ -137,12 +137,21 @@ import { AdminRole, AdminService, User } from '../../../../core/data-access/admi
       background: white;
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
       border: 1px solid var(--slate-200);
+      max-width: 100%;
     }
-    table { width: 100%; border-collapse: collapse; }
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
     th { text-align: left; padding: 1rem; background: var(--slate-50); color: var(--slate-500); font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid var(--slate-200); }
     td { padding: 1rem; border-bottom: 1px solid var(--slate-100); color: var(--slate-700); }
+    th, td { white-space: nowrap; }
 
     .user-cell { display: flex; align-items: center; gap: 0.75rem; font-weight: 500; }
     .avatar { width: 32px; height: 32px; background: var(--primary-100); color: var(--primary-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }

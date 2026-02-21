@@ -116,6 +116,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return role === 'colaborador' ? 'Pendientes' : 'Entregas';
   }
 
+  get isStudentRole(): boolean {
+    const role = String(this.SessionService.getRole() || '').toLowerCase();
+    return role === 'colaborador';
+  }
+
   private computeUnreadCount(
     items: Array<{ created_at: string }>,
     storageKey: string,
@@ -127,4 +132,3 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return items.filter((it) => new Date(it.created_at).getTime() > lastSeen).length;
   }
 }
-

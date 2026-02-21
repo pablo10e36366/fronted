@@ -30,6 +30,19 @@
             <span class="nav-badge" *ngIf="badges?.submissions_pending">{{ badges?.submissions_pending }}</span>
 		      </a>
 		    </li>
+    <li class="nav-item" routerLinkActive="active" *ngIf="isStudentRole">
+      <a [routerLink]="['/calificaciones']" class="nav-link">
+        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 21h8"></path>
+          <path d="M12 17v4"></path>
+          <path d="M7 4h10"></path>
+          <path d="M17 4v4a5 5 0 0 1-10 0V4"></path>
+          <path d="M5 10l7 4 7-4"></path>
+        </svg>
+        <span class="nav-text">Calificaciones</span>
+      </a>
+    </li>
     <li class="nav-item">
       <a [routerLink]="['/perfil']" class="nav-link" routerLinkActive="active">
         <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

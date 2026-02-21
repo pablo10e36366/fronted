@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NotificationComponent } from './components/notification/notification.component';
+import { ThemeService } from './core/data-access/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +12,9 @@ import { NotificationComponent } from './components/notification/notification.co
 })
 export class App {
   protected readonly title = signal('fronted');
+
+  constructor(private readonly themeService: ThemeService) {
+    // Inicializa el tema global al arrancar la app.
+    void this.themeService;
+  }
 }

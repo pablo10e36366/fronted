@@ -4,10 +4,20 @@
       <h1 class="page-title">Notificaciones</h1>
       <p class="page-subtitle">Tus alertas y actividad reciente</p>
     </div>
-    <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+    <div class="header-actions">
+      <button class="btn btn-secondary" type="button" (click)="load()">Actualizar</button>
+      <button
+        class="btn btn-secondary btn-danger-soft"
+        type="button"
+        [disabled]="loading || !hasNotifications"
+        (click)="clearNotifications()">
+        Limpiar
+      </button>
+    </div>
   </header>
 
   <div class="state-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="state-banner success" *ngIf="successMessage">{{ successMessage }}</div>
   <div class="state-banner info" *ngIf="loading">Cargando...</div>
 
   <section class="grid" *ngIf="!loading">

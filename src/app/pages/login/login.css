@@ -117,6 +117,48 @@ input::placeholder {
   color: #94a3b8;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 3rem;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.25rem;
+}
+
+.toggle-password:hover {
+  color: #475569;
+}
+
+.toggle-password svg {
+  display: block;
+}
+
+.toggle-password:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* Validation states */
 input:valid:not(:placeholder-shown) {
   border-color: #22c55e;

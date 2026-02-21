@@ -1,96 +1,113 @@
 <div class="projects-page">
   <main class="content">
     <section class="stats-grid">
-      <div class="left-column">
+      <div class="overview">
         <header class="page-header">
           <div>
-            <h1>Mis proyectos</h1>
-            <p class="lead">Gestión centralizada de evidencias y documentación.</p>
+            <h1>Gestion de Contenido</h1>
+            <p class="lead">Separa cursos y documentos para administrarlos sin mezclar flujos.</p>
           </div>
         </header>
 
         <div class="state-banner success" *ngIf="successMessage">{{ successMessage }}</div>
         <div class="state-banner error" *ngIf="errorMessage">{{ errorMessage }}</div>
-        <div class="state-banner info" *ngIf="loading">Procesando información...</div>
-
-        <div class="card heatmap-section">
-          <h3>HISTORIAL DE ACTIVIDAD</h3>
-          <div class="activity-heatmap">
-            <div class="heatmap-grid" aria-hidden="true"></div>
-            <div class="heatmap-legend" aria-hidden="true">
-              <span class="legend-label">Less</span>
-              <span class="legend-scale">
-                <i class="legend-sq sq-0"></i>
-                <i class="legend-sq sq-1"></i>
-                <i class="legend-sq sq-2"></i>
-                <i class="legend-sq sq-3"></i>
-                <i class="legend-sq sq-4"></i>
-              </span>
-              <span class="legend-label">More</span>
-            </div>
-          </div>
-        </div>
+        <div class="state-banner info" *ngIf="loading">Procesando informacion...</div>
       </div>
 
       <div class="right-column" aria-label="KPIs">
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-icon kpi-blue" aria-hidden="true">📁</div>
+            <div class="kpi-icon kpi-blue" aria-hidden="true">&#128193;</div>
             <div class="kpi-meta">
               <div class="kpi-number">{{ kpiTotal }}</div>
-              <div class="kpi-label">Total Proyectos</div>
+              <div class="kpi-label">Total Cursos</div>
             </div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-icon kpi-amber" aria-hidden="true">⏱️</div>
+            <div class="kpi-icon kpi-amber" aria-hidden="true">&#9201;</div>
             <div class="kpi-meta">
               <div class="kpi-number">{{ kpiReview }}</div>
-              <div class="kpi-label">En Revisión</div>
+              <div class="kpi-label">En Revision</div>
             </div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-icon kpi-green" aria-hidden="true">✅</div>
+            <div class="kpi-icon kpi-green" aria-hidden="true">&#9989;</div>
             <div class="kpi-meta">
               <div class="kpi-number">{{ kpiCompleted }}</div>
-              <div class="kpi-label">Validados</div>
+              <div class="kpi-label">Completados</div>
             </div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-icon kpi-purple" aria-hidden="true">⭐</div>
+            <div class="kpi-icon kpi-purple" aria-hidden="true">&#11088;</div>
             <div class="kpi-meta">
               <div class="kpi-number">{{ kpiScore }}%</div>
-              <div class="kpi-label">Calidad Promedio</div>
+              <div class="kpi-label">Indice Global</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="row">
+      <div class="card heatmap-section">
+        <h3>HISTORIAL DE ACTIVIDAD</h3>
+        <div class="activity-heatmap">
+          <div class="heatmap-grid" aria-hidden="true"></div>
+          <div class="heatmap-legend" aria-hidden="true">
+            <span class="legend-label">Less</span>
+            <span class="legend-scale">
+              <i class="legend-sq sq-0"></i>
+              <i class="legend-sq sq-1"></i>
+              <i class="legend-sq sq-2"></i>
+              <i class="legend-sq sq-3"></i>
+              <i class="legend-sq sq-4"></i>
+            </span>
+            <span class="legend-label">More</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-switch">
+        <button
+          type="button"
+          class="switch-btn"
+          [class.active]="activeView === 'courses'"
+          (click)="setActiveView('courses')">
+          Cursos
+        </button>
+        <button
+          type="button"
+          class="switch-btn"
+          [class.active]="activeView === 'documents'"
+          (click)="setActiveView('documents')">
+          Documentos
+        </button>
+      </div>
+
+      <div class="row" *ngIf="activeView === 'courses'">
         <div class="new-project card">
-          <h3>Nuevo proyecto</h3>
-          <p class="muted">Completa los datos para iniciar un nuevo registro.</p>
+          <h3>Nuevo curso</h3>
+          <p class="muted">Completa los datos para iniciar un nuevo curso.</p>
           <div class="form-field">
-            <label>Título *</label>
+            <label>Titulo *</label>
             <input #newProjectTitle name="title" [(ngModel)]="title" placeholder="Ej. Informe semana 10" />
           </div>
           <div class="form-field">
-            <label>Descripción</label>
-            <textarea [(ngModel)]="description" placeholder="Breve descripción..."></textarea>
+            <label>Descripcion</label>
+            <textarea [(ngModel)]="description" placeholder="Breve descripcion..."></textarea>
           </div>
           <div class="form-field">
-            <label>Archivo del proyecto</label>
+            <label>Archivo del curso</label>
             <app-file-upload-zone
               class="project-dropzone"
               (fileSelected)="onProjectFileSelected($event)"
               [acceptedTypes]="'.zip,.rar,.7z,.pdf,.docx,.doc,.xlsx,.pptx'"
               [compact]="true"
               [maxSizeMb]="100"
-              labelStrong="Arrastra tu proyecto aquí"
+              labelStrong="Arrastra tu archivo aqui"
               labelSub="o haz clic para seleccionar"
-              hintText="ZIP, RAR, PDF, DOCX (máx. 100MB)">
+              hintText="ZIP, RAR, PDF, DOCX (max. 100MB)">
             </app-file-upload-zone>
           </div>
           <div class="form-field">
@@ -103,122 +120,133 @@
             <div class="toolbar-row">
               <div class="toolbar-left">
                 <div class="search-wrapper">
-                  <span class="search-icon" aria-hidden="true">🔍</span>
+                  <span class="search-icon" aria-hidden="true">&#128269;</span>
                   <input
                     type="text"
                     (input)="onSearch($any($event.target).value)"
                     [value]="searchTerm"
-                    placeholder="Buscar proyecto, autor o tag..."
+                    placeholder="Buscar curso o profesor..."
                   />
                 </div>
-
-                <select [(ngModel)]="filterStatus" (change)="applyFilters()">
-                  <option value="ALL">Todos los estados</option>
-                  <option value="draft">Borrador</option>
-                  <option value="in_progress">En progreso</option>
-                  <option value="in_review">En revisión</option>
-                  <option value="completed">Completado</option>
-                </select>
               </div>
 
               <div class="toolbar-right">
                 <button class="btn ghost" type="button" (click)="exportProjects()">Exportar</button>
-                <button class="btn primary" type="button" (click)="focusNewProject()">+ Nuevo Proyecto</button>
-              </div>
-            </div>
-
-            <div class="toolbar-row">
-              <div class="toolbar-left">
-                <select [(ngModel)]="filterTech" (change)="applyFilters()">
-                  <option value="ALL">Todas las tecnologías</option>
-                  <option value="MATH">Math</option>
-                  <option value="CALCULUS">Calculus</option>
-                  <option value="ANGULAR">Angular</option>
-                  <option value="NESTJS">NestJS</option>
-                  <option value="DESIGN">Design</option>
-                  <option value="FIGMA">Figma</option>
-                  <option value="DOCS">Docs</option>
-                  <option value="BACKEND">Backend</option>
-                  <option value="FRONTEND">Frontend</option>
-                </select>
+                <button class="btn primary" type="button" (click)="focusNewProject()">+ Nuevo Curso</button>
               </div>
             </div>
           </div>
 
+          <div class="table-scroll">
+            <table class="projects-table">
+              <thead>
+                <tr>
+                  <th>Curso / Descripcion</th>
+                  <th>Propietario</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let project of filteredProjects">
+                  <td class="project-cell">
+                    <div class="project-title">{{ project.title }}</div>
+                    <div class="project-desc">{{ project.description || 'Sin descripcion' }}</div>
+                  </td>
+                  <td class="owner-cell">
+                    <div class="owner-name">{{ project.owner?.name || 'Sin propietario' }}</div>
+                    <div class="owner-email">{{ project.owner?.email || 'N/A' }}</div>
+                  </td>
+                  <td class="actions-cell">
+                    <div class="action-grid">
+                      <button class="icon-btn" type="button" (click)="viewProject(project.id)">Ver</button>
+                      <button class="icon-btn danger" type="button" (click)="deleteProject(project.id)">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="!filteredProjects.length && !loading">
+                  <td colspan="3" class="empty-row">No hay cursos para mostrar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-panel card" *ngIf="activeView === 'documents'">
+        <div class="toolbar">
+          <div class="toolbar-row">
+            <div class="toolbar-left">
+              <div class="search-wrapper">
+                <span class="search-icon" aria-hidden="true">&#128269;</span>
+                <input
+                  type="text"
+                  (input)="onSearch($any($event.target).value)"
+                  [value]="searchTerm"
+                  placeholder="Buscar documento, curso o tipo..."
+                />
+              </div>
+            </div>
+
+            <div class="toolbar-right">
+              <button class="btn ghost" type="button" (click)="exportProjects()">Exportar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-scroll">
           <table class="projects-table">
             <thead>
               <tr>
-                <th>Proyecto / Descripción</th>
+                <th>Documento</th>
+                <th>Curso</th>
                 <th>Propietario</th>
-                <th>Tags</th>
-                <th>Progreso</th>
-                <th>Estado</th>
+                <th>Tipo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let project of filteredProjects">
-                <td class="project-cell">
-                  <div class="project-title">{{ project.title }}</div>
-                  <div class="project-desc">{{ project.description || 'Sin descripción' }}</div>
+              <tr *ngFor="let document of filteredDocuments">
+                <td>
+                  <div class="project-title">{{ document.title }}</div>
+                  <div class="project-desc">{{ document.updatedAt ? (document.updatedAt | date:'short') : 'Sin fecha' }}</div>
                 </td>
+                <td class="project-desc">{{ document.projectTitle }}</td>
                 <td class="owner-cell">
-                  <div class="owner-name">{{ project.owner?.name || 'Sin propietario' }}</div>
-                  <div class="owner-email">{{ project.owner?.email || 'N/A' }}</div>
+                  <div class="owner-name">{{ document.ownerName }}</div>
+                  <div class="owner-email">{{ document.ownerEmail }}</div>
                 </td>
-                <td><span class="tag" *ngFor="let tag of project.tags">{{ tag }}</span></td>
-                <td class="progress-cell">
-                  <div class="progress-meter">
-                    <span class="progress-dot" aria-hidden="true"></span>
-                    <div class="progress-track"><i [style.width.%]="project.progress"></i></div>
-                    <span class="progress-text">{{ project.progress }}%</span>
-                  </div>
-                </td>
-                <td><span class="status-pill">{{ getStatusLabel(project.uiStatus) }}</span></td>
+                <td><span class="file-pill">{{ document.mimeType }}</span></td>
                 <td class="actions-cell">
-                  <div class="action-grid">
-                    <button class="icon-btn" type="button" (click)="viewProject(project.id)">Ver</button>
-                    <button class="icon-btn" type="button" (click)="downloadProject(project)">Descargar</button>
-                    <button class="icon-btn" type="button" (click)="editProject(project)">Editar</button>
-                    <button class="icon-btn danger" type="button" (click)="deleteProject(project.id)">Eliminar</button>
-                    <button class="icon-btn warning" type="button" (click)="archiveProject(project)">Archivar</button>
-                    <button class="icon-btn info" type="button" (click)="openForceStatusModal(project)">Forzar estado</button>
-                  </div>
-                  <div class="status-change-row">
-                    <select
-                      [disabled]="loading || loadingTransitionsByProject[project.id]"
-                      (focus)="loadTransitions(project.id)"
-                      (change)="changeProjectStatus(project, $any($event.target).value)">
-                      <option value="">Cambiar estado...</option>
-                      <option *ngFor="let state of getTransitions(project.id)" [value]="state">
-                        {{ getStatusLabel(state) }}
-                      </option>
-                    </select>
+                  <div class="action-grid docs-actions">
+                    <button class="icon-btn" type="button" (click)="viewDocument(document)">Ver</button>
+                    <button class="icon-btn" type="button" (click)="downloadDocument(document)">Descargar</button>
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="!filteredProjects.length && !loading">
-                <td colspan="6" class="empty-row">No hay proyectos para mostrar.</td>
+              <tr *ngIf="!filteredDocuments.length && !loadingDocuments">
+                <td colspan="5" class="empty-row">No hay documentos para mostrar.</td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <div class="state-banner info docs-loading" *ngIf="loadingDocuments">Cargando documentos...</div>
       </div>
     </section>
   </main>
 
-  <button class="fab" type="button" (click)="focusNewProject()">+</button>
+  <button class="fab" [class.is-hidden]="activeView === 'documents'" type="button" (click)="activeView === 'courses' ? focusNewProject() : null">+</button>
 </div>
 
-<div class="modal-backdrop" *ngIf="showEditModal || showForceStatusModal">
+<div class="modal-backdrop" *ngIf="showEditModal">
   <div class="modal-card" *ngIf="showEditModal">
-    <h3>Editar proyecto</h3>
+    <h3>Editar curso</h3>
     <div class="form-field">
-      <label>Título *</label>
+      <label>Titulo *</label>
       <input [(ngModel)]="editTitle" />
     </div>
     <div class="form-field">
-      <label>Descripción</label>
+      <label>Descripcion</label>
       <textarea [(ngModel)]="editDescription"></textarea>
     </div>
     <div class="modal-actions">
@@ -226,30 +254,113 @@
       <button class="btn primary" type="button" (click)="saveEdit()" [disabled]="loading">Guardar</button>
     </div>
   </div>
+</div>
 
-  <div class="modal-card" *ngIf="showForceStatusModal">
-    <h3>Forzar estado del proyecto</h3>
-    <p class="muted">
-      Proyecto: <strong>{{ forceStatusProject?.title }}</strong>
-    </p>
-    <div class="form-field">
-      <label>Estado destino</label>
-      <select [(ngModel)]="forceStatusValue">
-        <option value="draft">Borrador</option>
-        <option value="in_progress">En progreso</option>
-        <option value="in_review">En revisión</option>
-        <option value="completed">Completado</option>
-      </select>
+<div class="modal-backdrop" *ngIf="showDocumentViewer">
+  <div class="modal-card document-viewer-modal">
+    <div class="document-viewer-header">
+      <div>
+        <h3>{{ viewerTitle || 'Documento' }}</h3>
+        <p class="document-viewer-meta">{{ viewerMimeType || 'Archivo' }}</p>
+      </div>
+      <button class="btn ghost" type="button" (click)="closeDocumentViewer()">Cerrar</button>
     </div>
-    <div class="form-field">
-      <label>Razón *</label>
-      <textarea [(ngModel)]="forceStatusReason" placeholder="Motivo del cambio forzado..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" type="button" (click)="closeForceStatusModal()">Cancelar</button>
-      <button class="btn primary" type="button" (click)="confirmForceStatus()" [disabled]="loading">
-        Confirmar
-      </button>
+
+    <div class="document-viewer-body">
+      <div class="document-viewer-loading" *ngIf="viewerLoading">Cargando documento...</div>
+
+      <div class="document-viewer-error" *ngIf="!viewerLoading && viewerError">
+        {{ viewerError }}
+      </div>
+
+      <ng-container *ngIf="!viewerLoading && !viewerError">
+        <iframe
+          *ngIf="viewerMode === 'pdf' || viewerMode === 'iframe'"
+          class="document-frame"
+          [src]="viewerSafeUrl"
+          title="Vista previa de documento">
+        </iframe>
+
+        <img
+          *ngIf="viewerMode === 'image'"
+          class="document-image"
+          [src]="viewerObjectUrl || ''"
+          alt="Vista previa del documento" />
+
+        <video
+          *ngIf="viewerMode === 'video'"
+          class="document-media"
+          [src]="viewerObjectUrl || ''"
+          controls>
+        </video>
+
+        <audio
+          *ngIf="viewerMode === 'audio'"
+          class="document-media audio"
+          [src]="viewerObjectUrl || ''"
+          controls>
+        </audio>
+
+        <pre *ngIf="viewerMode === 'text'" class="document-text">{{ viewerTextContent }}</pre>
+
+        <div *ngIf="viewerMode === 'docx'" class="docx-wrapper">
+          <div class="docx-content" [innerHTML]="viewerDocxHtml"></div>
+        </div>
+
+        <div *ngIf="viewerMode === 'presentation'" class="slides-wrapper">
+          <div class="slides-empty" *ngIf="!viewerSlides.length">No se encontró contenido de diapositivas.</div>
+          <section class="slide-card" *ngFor="let slide of viewerSlides; let i = index">
+            <header class="slide-title">{{ slide.title || ('Diapositiva ' + (i + 1)) }}</header>
+            <ul class="slide-lines">
+              <li *ngFor="let line of slide.lines">{{ line }}</li>
+            </ul>
+          </section>
+        </div>
+
+        <div *ngIf="viewerMode === 'spreadsheet'" class="sheet-wrapper">
+          <div class="sheet-empty" *ngIf="!viewerSheetRows.length">La hoja no contiene datos visibles.</div>
+          <table class="sheet-table" *ngIf="viewerSheetRows.length">
+            <tbody>
+              <tr *ngFor="let row of viewerSheetRows; let rowIdx = index">
+                <th class="sheet-row-index">{{ rowIdx + 1 }}</th>
+                <td *ngFor="let colIdx of viewerSheetCols">{{ row[colIdx] }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="sheet-note" *ngIf="viewerSheetRows.length >= 300">
+            Mostrando las primeras 300 filas.
+          </div>
+        </div>
+
+        <div *ngIf="viewerMode === 'unsupported'" class="document-viewer-empty">
+          Este formato no se puede previsualizar dentro de la app.
+        </div>
+
+        <div class="viewer-comment-box" *ngIf="viewingDocument?.evidenceId">
+          <label for="admin-document-note">Comentario por archivo (solo local)</label>
+          <textarea
+            id="admin-document-note"
+            [(ngModel)]="viewerCommentDraft"
+            (ngModelChange)="viewerCommentSaved = false"
+            placeholder="Escribe una nota rapida para este documento...">
+          </textarea>
+          <div class="viewer-comment-actions">
+            <button class="btn ghost" type="button" (click)="clearViewerComment()">Limpiar</button>
+            <button class="btn primary" type="button" (click)="saveViewerComment()">Guardar comentario</button>
+            <span class="viewer-comment-state" *ngIf="viewerCommentSaved">Guardado</span>
+          </div>
+        </div>
+
+        <div class="document-viewer-actions">
+          <button
+            class="btn ghost"
+            type="button"
+            *ngIf="viewingDocument"
+            (click)="downloadDocument(viewingDocument)">
+            Descargar
+          </button>
+        </div>
+      </ng-container>
     </div>
   </div>
 </div>

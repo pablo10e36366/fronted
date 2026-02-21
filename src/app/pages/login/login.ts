@@ -15,12 +15,17 @@ import { NotificationService } from '../../core/data-access/notification.service
 export class LoginComponent {
   email = '';
   password = '';
+  showPassword = false;
   loading = false;
 
   constructor(
     private SessionService: SessionService,
     private notificationService: NotificationService
   ) { }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
 
   onSubmit() {
     if (!this.email.trim() || !this.password.trim()) {

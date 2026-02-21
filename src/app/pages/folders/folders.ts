@@ -170,7 +170,7 @@ import { ProjectDto, EvidenceDto } from '../../core/models/project.models';
     }
 
     .btn-ghost {
-      background: white;
+      background: var(--card-bg, white);
       border-color: rgba(15, 23, 42, 0.12);
       color: var(--slate-800);
       box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
@@ -204,7 +204,7 @@ import { ProjectDto, EvidenceDto } from '../../core/models/project.models';
 
     /* CARDS */
     .card {
-      background: white;
+      background: var(--card-bg, white);
       border: 1px solid var(--slate-200);
       border-radius: var(--border-radius-lg);
       padding: 1.5rem;
@@ -317,7 +317,7 @@ import { ProjectDto, EvidenceDto } from '../../core/models/project.models';
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: white;
+      background: var(--card-bg, white);
       border: 1px solid var(--slate-300);
       color: var(--slate-700);
       border-radius: var(--border-radius-sm);
@@ -378,6 +378,65 @@ import { ProjectDto, EvidenceDto } from '../../core/models/project.models';
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    :host-context([data-theme="dark"]) .folders-page {
+      color: var(--slate-700);
+    }
+
+    :host-context([data-theme="dark"]) .btn-ghost {
+      border-color: rgba(148, 163, 184, 0.24);
+      box-shadow: none;
+    }
+
+    :host-context([data-theme="dark"]) .btn-ghost:hover {
+      background: var(--slate-100);
+    }
+
+    :host-context([data-theme="dark"]) .card {
+      border-color: rgba(148, 163, 184, 0.2);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+    }
+
+    :host-context([data-theme="dark"]) .card-title {
+      color: var(--slate-800);
+    }
+
+    :host-context([data-theme="dark"]) .card-meta,
+    :host-context([data-theme="dark"]) .subtitle,
+    :host-context([data-theme="dark"]) .crumb,
+    :host-context([data-theme="dark"]) .loading-state,
+    :host-context([data-theme="dark"]) .empty-state {
+      color: var(--slate-500);
+    }
+
+    :host-context([data-theme="dark"]) .breadcrumbs-container {
+      background: var(--slate-100);
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    :host-context([data-theme="dark"]) .crumb.active,
+    :host-context([data-theme="dark"]) .page-header h1 {
+      color: var(--slate-900);
+    }
+
+    :host-context([data-theme="dark"]) .separator {
+      color: var(--slate-400);
+    }
+
+    :host-context([data-theme="dark"]) .back-btn {
+      border-color: rgba(148, 163, 184, 0.24);
+      box-shadow: none;
+    }
+
+    :host-context([data-theme="dark"]) .back-btn:hover {
+      background: #1e293b;
+    }
+
+    :host-context([data-theme="dark"]) .error-banner {
+      background: rgba(127, 29, 29, 0.32);
+      color: #fecaca;
+      border-color: rgba(254, 202, 202, 0.35);
     }
   `]
 })

@@ -29,6 +29,7 @@ import { StudentDeliveriesComponent } from './features/student/pages/student-del
 import { StudentDashboardComponent } from './features/student/pages/student-dashboard/student-dashboard.component';
 import { StudentActivitiesComponent } from './features/student/pages/student-activities/student-activities.component';
 import { StudentNotificationsComponent } from './features/student/pages/student-notifications/student-notifications.component';
+import { StudentGradesComponent } from './features/student/pages/student-grades/student-grades.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -66,6 +67,7 @@ export const routes: Routes = [
       { path: 'entregas/:courseId', component: StudentDeliveriesComponent },
       { path: 'actividades', redirectTo: '', pathMatch: 'full' },
       { path: 'actividades/:courseId', component: StudentActivitiesComponent },
+      { path: 'calificaciones', component: StudentGradesComponent },
       { path: 'perfil', component: TeacherProfileComponent },
       { path: 'notificaciones', component: StudentNotificationsComponent },
       { path: 'projects/:id', component: RepositoryComponent },

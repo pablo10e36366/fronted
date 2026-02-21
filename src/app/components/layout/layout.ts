@@ -28,7 +28,18 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
       <app-war-room-timer [deadline]="currentDeadline()"></app-war-room-timer>
 
       <!-- SIDEBAR NAVIGATION -->
-      <aside class="sidebar">
+      <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed">
+        <button
+          type="button"
+          class="sidebar-toggle"
+          (click)="toggleSidebarCollapse()"
+          [attr.aria-label]="sidebarCollapsed ? 'Expandir menu lateral' : 'Ocultar menu lateral'"
+          [title]="sidebarCollapsed ? 'Expandir menu lateral' : 'Ocultar menu lateral'">
+          <svg class="sidebar-toggle-icon" [class.sidebar-toggle-icon--expanded]="!sidebarCollapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </button>
+        <div class="sidebar-shell">
         <div class="sidebar-header">
           <div class="logo-container">
             <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -130,6 +141,7 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
             </svg>
           </button>
         </div>
+        </div>
       </aside>
 
       <!-- MAIN CONTENT AREA -->
@@ -173,8 +185,73 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
       flex-direction: column;
       border-right: 1px solid rgba(102, 126, 234, 0.1);
       flex-shrink: 0;
-      transition: width 0.3s ease;
+      transition: width 0.3s ease, transform 0.3s ease;
       box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: visible;
+      transform: translateX(0);
+    }
+
+    .sidebar-shell {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      width: 100%;
+      height: 100%;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .sidebar--collapsed {
+      width: 14px;
+      min-width: 14px;
+      border-right-color: rgba(102, 126, 234, 0.25);
+      box-shadow: none;
+    }
+
+    .sidebar--collapsed .sidebar-shell {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 50%;
+      right: -15px;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 56px;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 30;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.24);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .sidebar-toggle:hover {
+      transform: translateY(-50%) scale(1.05);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.3);
+    }
+
+    .sidebar-toggle:focus-visible {
+      outline: 2px solid #667eea;
+      outline-offset: 2px;
+    }
+
+    .sidebar-toggle-icon {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.2s ease;
+    }
+
+    .sidebar-toggle-icon--expanded {
+      transform: rotate(180deg);
     }
 
     .sidebar-header {
@@ -399,6 +476,17 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
       border-bottom-color: var(--slate-200);
     }
 
+    :host-context([data-theme="dark"]) .sidebar-toggle {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-color: rgba(148, 163, 184, 0.45);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.55);
+    }
+
+    :host-context([data-theme="dark"]) .sidebar-toggle:hover {
+      box-shadow: 0 12px 26px rgba(2, 6, 23, 0.65);
+    }
+
     .search-container {
       width: 100%;
       max-width: 600px;
@@ -409,12 +497,48 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
       flex: 1;
       overflow-y: auto;
       padding: 2rem;
+      background: var(--slate-50);
+    }
+
+    @media (max-width: 900px) {
+      .app-layout {
+        position: relative;
+      }
+
+      .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        min-width: 280px;
+        z-index: 30;
+      }
+
+      .sidebar--collapsed {
+        width: 280px;
+        min-width: 280px;
+        transform: translateX(-266px);
+      }
+
+      .main-area {
+        width: 100%;
+      }
+
+      .top-bar {
+        padding: 0 1rem;
+      }
+
+      .content-wrapper {
+        padding: 1rem;
+      }
     }
   `]
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   user$: Observable<JwtUserPayload | null>;
   currentDeadline = signal<string | undefined>(undefined);
+  sidebarCollapsed = false;
 
   private subs: Subscription[] = [];
 
@@ -428,6 +552,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1200) {
+      this.sidebarCollapsed = true;
+    }
     this.loadNearestDeadline();
   }
 
@@ -469,6 +596,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   handleGodMode(): void {
     this.router.navigate(['/god-mode']);
+  }
+
+  toggleSidebarCollapse(): void {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
   isAdminRole(role: string | null | undefined): boolean {
