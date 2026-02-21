@@ -23,6 +23,7 @@ export const authInterceptor: HttpInterceptorFn = (
   const publicRoutes = [
     '/auth/login',
     '/auth/register',
+    '/auth/register/verify',
     '/auth/refresh',
     '/auth/logout',
     '/auth/google-otp/start',

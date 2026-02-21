@@ -48,6 +48,45 @@
           <button class="btn btn-secondary" type="button" (click)="logout()">Cerrar sesión</button>
         </div>
       </article>
+
+      <article class="card request-card" *ngIf="isStudentRole">
+        <h2>Solicitud para ser docente</h2>
+        <p class="request-help">
+          Para cambiar de rol debes enviar una solicitud al administrador.
+        </p>
+
+        <div class="request-status" [ngClass]="teacherRequestStatusClass(teacherRequest?.status)">
+          {{ teacherRequestStatusLabel(teacherRequest?.status) }}
+        </div>
+
+        <p class="request-meta" *ngIf="teacherRequest?.created_at">
+          Enviada: {{ teacherRequest?.created_at | date:'short' }}
+        </p>
+        <p class="request-meta" *ngIf="teacherRequest?.admin_note">
+          Nota del administrador: {{ teacherRequest?.admin_note }}
+        </p>
+
+        <div class="request-form" *ngIf="canSubmitTeacherRequest()">
+          <label for="teacher-request-message">Motivo (opcional)</label>
+          <textarea
+            id="teacher-request-message"
+            rows="4"
+            [(ngModel)]="teacherRequestMessage"
+            placeholder="Cuéntale al administrador por qué necesitas rol docente..."
+          ></textarea>
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="teacherRequestSubmitting || teacherRequestLoading"
+            (click)="submitTeacherRequest()"
+          >
+            {{ teacherRequestSubmitting ? 'Enviando...' : 'Enviar solicitud' }}
+          </button>
+        </div>
+
+        <p class="request-success" *ngIf="teacherRequestSuccess">{{ teacherRequestSuccess }}</p>
+        <p class="request-error" *ngIf="teacherRequestError">{{ teacherRequestError }}</p>
+      </article>
     </section>
   </ng-container>
 

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { AuthService } from '../../../services/auth';
-import { JwtUserPayload, LoginResponse } from '../../models/auth.models';
+import { JwtUserPayload, LoginResponse, RegisterResponse } from '../../models/auth.models';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -16,8 +16,18 @@ export class SessionService {
     return this.authService.login(email, password);
   }
 
-  register(name: string, email: string, password: string): Observable<any> {
+  register(name: string, email: string, password: string): Observable<RegisterResponse> {
     return this.authService.register(name, email, password);
+  }
+
+  resendRegistrationPin(
+    email: string,
+  ): Observable<{ success: boolean; message: string; cooldown_seconds: number }> {
+    return this.authService.resendRegistrationPin(email);
+  }
+
+  verifyRegistration(email: string, code: string): Observable<LoginResponse> {
+    return this.authService.verifyRegistration(email, code);
   }
 
   startGoogleOtp(

@@ -2,6 +2,8 @@ export const API_ROUTES = {
   auth: {
     login: '/auth/login',
     register: '/auth/register',
+    registerVerify: '/auth/register/verify',
+    registerResend: '/auth/register/resend',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     googleOtpStart: '/auth/google-otp/start',
@@ -36,5 +38,6 @@ export const API_ROUTES = {
     assignments: '/student/assignments',
     dashboard: '/student/dashboard',
     notifications: '/student/notifications',
+    teacherRoleRequest: '/student/role-requests/teacher',
   },
 } as const;

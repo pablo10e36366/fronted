@@ -12,6 +12,7 @@ import type {
   StudentDashboardData,
   StudentJoinCourseResponseData,
   StudentNotificationsListData,
+  StudentRoleUpgradeRequestData,
 } from '../../../core/models/student.models';
 
 @Injectable({ providedIn: 'root' })
@@ -98,6 +99,21 @@ export class StudentService {
     return this.http.get<StudentApiResponse<StudentNotificationsListData>>(
       `${this.apiUrl}${API_ROUTES.student.notifications}`,
       { params: httpParams },
+    );
+  }
+
+  getTeacherRoleRequest(): Observable<StudentApiResponse<StudentRoleUpgradeRequestData>> {
+    return this.http.get<StudentApiResponse<StudentRoleUpgradeRequestData>>(
+      `${this.apiUrl}${API_ROUTES.student.teacherRoleRequest}`,
+    );
+  }
+
+  createTeacherRoleRequest(
+    message?: string,
+  ): Observable<StudentApiResponse<StudentRoleUpgradeRequestData>> {
+    return this.http.post<StudentApiResponse<StudentRoleUpgradeRequestData>>(
+      `${this.apiUrl}${API_ROUTES.student.teacherRoleRequest}`,
+      { message: message?.trim() || undefined },
     );
   }
 }

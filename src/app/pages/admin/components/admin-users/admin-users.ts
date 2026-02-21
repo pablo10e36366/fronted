@@ -134,9 +134,9 @@ import { AdminRole, AdminService, User } from '../../../../core/data-access/admi
     }
 
     .table-container {
-      background: white;
+      background: var(--card-bg, #fff);
       border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-card);
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
@@ -168,7 +168,8 @@ import { AdminRole, AdminService, User } from '../../../../core/data-access/admi
       padding: 4px 8px;
       border-radius: 4px;
       border: 1px solid var(--slate-300);
-      background: white;
+      background: var(--slate-100);
+      color: var(--slate-800);
       min-width: 130px;
     }
 
@@ -179,12 +180,21 @@ import { AdminRole, AdminService, User } from '../../../../core/data-access/admi
       z-index: 1000;
     }
     .modal {
-      background: white; padding: 2rem; border-radius: 12px; width: 400px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      background: var(--card-bg, #fff); padding: 2rem; border-radius: 12px; width: 400px;
+      box-shadow: var(--shadow-card-hover);
+      border: 1px solid var(--slate-200);
+      color: var(--slate-800);
     }
     .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-    .form-group input, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid var(--slate-300); border-radius: 6px; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--slate-700); }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--slate-300);
+      border-radius: 6px;
+      background: var(--slate-100);
+      color: var(--slate-800);
+    }
     .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
 
     .error-banner {
@@ -307,7 +317,9 @@ export class AdminUsersComponent implements OnInit {
     if (role === 'colaborador') return 'Estudiante';
     if (role === 'docente' || role === 'professor') return 'Docente';
     if (role === 'admin') return 'Admin';
-    if (role === 'user' || role === 'usuario') return 'Usuario';
+    if (role === 'user' || role === 'usuario' || role === 'estudiante' || role === 'student') {
+      return 'Estudiante';
+    }
     return roleName || 'Sin rol';
   }
 

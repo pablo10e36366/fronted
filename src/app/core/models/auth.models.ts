@@ -21,6 +21,12 @@ export interface RegisterRequest {
   // role?: 'admin' | 'usuario'; // si lo manejas en backend
 }
 
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  expires_in_seconds?: number;
+}
+
 export interface JwtUserPayload {
   sub?: number;
   id?: number;

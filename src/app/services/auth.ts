@@ -10,6 +10,7 @@ import {
   LoginRequest,
   LoginResponse,
   RegisterRequest,
+  RegisterResponse,
 } from '../core/models/auth.models';
 import { decodeJwtPayload, isTokenValid } from '../core/utils/jwt.utils';
 
@@ -173,16 +174,81 @@ export class AuthService {
     name: string,
     email: string,
     password: string
-  ): Observable<any> {
+  ): Observable<RegisterResponse> {
     const body: RegisterRequest = { name, email, password };
 
     return this.http
-      .post(`${this.apiUrl}${API_ROUTES.auth.register}`, body)
+      .post<RegisterResponse>(`${this.apiUrl}${API_ROUTES.auth.register}`, body)
       .pipe(
         tap(() => {}),
         // En registro queremos propagar el error real (409, 400, etc.) para mostrarlo en UI
         catchError((err) => {
           console.error('[AuthService.register]', err);
+          return throwError(() => err);
+        }),
+      );
+  }
+
+  resendRegistrationPin(
+    email: string,
+  ): Observable<{ success: boolean; message: string; cooldown_seconds: number }> {
+    return this.http
+      .post<{ success: boolean; message: string; cooldown_seconds: number }>(
+        `${this.apiUrl}${API_ROUTES.auth.registerResend}`,
+        { email },
+      )
+      .pipe(
+        catchError((err) => {
+          console.error('[AuthService.resendRegistrationPin]', err);
+          return throwError(() => err);
+        }),
+      );
+  }
+
+  verifyRegistration(email: string, code: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}${API_ROUTES.auth.registerVerify}`, {
+        email,
+        code,
+      })
+      .pipe(
+        tap((res) => {
+          if (typeof window === 'undefined') return;
+
+          sessionStorage.setItem(this.tokenKey, res.access_token);
+          if (res.refresh_token) {
+            sessionStorage.setItem(this.refreshTokenKey, res.refresh_token);
+          }
+          localStorage.removeItem(this.tokenKey);
+          localStorage.removeItem(this.refreshTokenKey);
+
+          const payload = decodeJwtPayload(res.access_token);
+          const normalizedPayload = {
+            ...payload,
+            role: payload?.role ? String(payload.role).toLowerCase() : payload?.role,
+          } as JwtUserPayload;
+
+          this.currentUserSubject.next(normalizedPayload);
+
+          if (normalizedPayload?.role === 'colaborador') {
+            this.router.navigate(['/inicio']);
+            return;
+          }
+
+          if (normalizedPayload?.role === 'docente') {
+            this.router.navigate(['/inicio']);
+            return;
+          }
+
+          if (normalizedPayload?.role === 'admin') {
+            this.router.navigate(['/admin']);
+            return;
+          }
+
+          this.router.navigate(['/projects']);
+        }),
+        catchError((err) => {
+          console.error('[AuthService.verifyRegistration]', err);
           return throwError(() => err);
         }),
       );

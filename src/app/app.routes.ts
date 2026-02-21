@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './pages/login/login';
 import { RegisterComponent } from './pages/register/register';
+import { RegisterVerifyComponent } from './pages/register-verify/register-verify';
 import { ProjectsComponent } from './pages/projects/projects';
 import { AdminComponent } from './pages/admin/admin';
 import { RepositoryComponent } from './pages/repository/repository';
@@ -34,6 +35,7 @@ import { StudentGradesComponent } from './features/student/pages/student-grades/
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { path: 'register/verify', component: RegisterVerifyComponent },
 
   {
     path: '',

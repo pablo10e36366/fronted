@@ -127,6 +127,11 @@
   gap: 16px;
 }
 
+.request-card {
+  grid-column: 1 / -1;
+  padding: 16px;
+}
+
 .info-card,
 .quick-card {
   padding: 16px;
@@ -198,6 +203,94 @@
 
 .actions .btn {
   min-width: 160px;
+}
+
+.request-help {
+  margin: 0 0 12px;
+  color: var(--slate-600);
+  font-weight: 600;
+}
+
+.request-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  margin-bottom: 10px;
+}
+
+.status-empty {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.status-pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.status-approved {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-rejected {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.request-meta {
+  margin: 0 0 8px;
+  color: var(--slate-600);
+  font-weight: 600;
+}
+
+.request-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.request-form label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--slate-700);
+}
+
+.request-form textarea {
+  resize: vertical;
+  min-height: 92px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--slate-900);
+  background: #fff;
+}
+
+.request-form .btn {
+  align-self: flex-start;
+}
+
+.request-success {
+  margin-top: 10px;
+  color: #047857;
+  font-weight: 700;
+}
+
+.request-error {
+  margin-top: 10px;
+  color: #b91c1c;
+  font-weight: 700;
 }
 
 .empty {

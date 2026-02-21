@@ -84,3 +84,17 @@ export type StudentNotificationItem = {
 export type StudentNotificationsListData = {
   items: StudentNotificationItem[];
 };
+
+export type StudentRoleUpgradeRequest = {
+  id: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requested_role: string;
+  message: string | null;
+  admin_note: string | null;
+  created_at: string | null;
+  reviewed_at: string | null;
+};
+
+export type StudentRoleUpgradeRequestData = {
+  request: StudentRoleUpgradeRequest | null;
+};

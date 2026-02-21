@@ -1,0 +1,19 @@
+<div class="verify-page">
+  <div class="verify-card">
+    <h1>Verificando registro</h1>
+
+    <p *ngIf="loading">Estamos activando tu cuenta...</p>
+
+    <p *ngIf="success" class="success">
+      Cuenta activada correctamente. Ingresando como estudiante...
+    </p>
+
+    <div *ngIf="!loading && errorMessage" class="error-block">
+      <p class="error">{{ errorMessage }}</p>
+      <div class="actions">
+        <a routerLink="/register" class="btn btn-secondary">Volver a registro</a>
+        <a routerLink="/login" class="btn btn-primary">Ir a login</a>
+      </div>
+    </div>
+  </div>
+</div>

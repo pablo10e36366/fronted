@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { SessionService } from '../../core/auth/data-access/session.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -12,13 +12,15 @@ import { HttpErrorResponse } from '@angular/common/http';
   styleUrls: ['./register.css'],
   imports: [CommonModule, FormsModule, RouterLink],
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnDestroy {
   step: 'methods' | 'email' | 'phone' | 'google' = 'methods';
+  emailStage: 'enter_data' | 'enter_pin' = 'enter_data';
 
   name = '';
   email = '';
   password = '';
   confirmPassword = '';
+  emailCode = '';
   phone = '';
 
   googleEmail = '';
@@ -30,8 +32,10 @@ export class RegisterComponent {
   loading = false;
   errorMessage = '';
   successMessage = '';
+  emailResendCooldown = 0;
+  private emailResendTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private auth: SessionService, private router: Router) {}
+  constructor(private auth: SessionService) {}
 
   selectMethod(method: 'google' | 'apple' | 'phone' | 'email') {
     this.errorMessage = '';
@@ -39,6 +43,7 @@ export class RegisterComponent {
 
     if (method === 'email') {
       this.step = 'email';
+      this.emailStage = 'enter_data';
       return;
     }
 
@@ -64,12 +69,16 @@ export class RegisterComponent {
 
   backToMethods() {
     this.step = 'methods';
+    this.emailStage = 'enter_data';
     this.errorMessage = '';
     this.successMessage = '';
+    this.clearEmailResendTimer();
+    this.emailResendCooldown = 0;
   }
 
   onSubmit() {
     if (this.step !== 'email') return;
+    if (this.emailStage !== 'enter_data') return;
 
     if (!this.name.trim() || !this.email.trim() || !this.password.trim() || !this.confirmPassword.trim()) {
       this.errorMessage = 'Complete todos los campos';
@@ -85,19 +94,101 @@ export class RegisterComponent {
     this.successMessage = '';
 
     this.auth.register(this.name, this.email, this.password).subscribe({
-      next: () => {
+      next: (res) => {
         this.loading = false;
-        this.successMessage = 'Usuario registrado correctamente';
-
-        setTimeout(() => {
-          this.router.navigate(['/login']);
-        }, 1200);
+        this.emailStage = 'enter_pin';
+        this.startEmailResendCooldown(60);
+        this.successMessage =
+          res?.message ||
+          'Te enviamos un PIN por correo. Ingresalo para activar tu cuenta.';
       },
       error: (err: unknown) => {
         this.loading = false;
         this.errorMessage = this.toRegisterErrorMessage(err);
       },
     });
+  }
+
+  verifyEmailPin() {
+    if (this.step !== 'email' || this.emailStage !== 'enter_pin') return;
+
+    const email = this.email.trim();
+    const code = this.emailCode.trim();
+
+    if (!email) {
+      this.errorMessage = 'Ingresa tu correo';
+      return;
+    }
+    if (!/^\d{6}$/.test(code)) {
+      this.errorMessage = 'Ingresa el PIN de 6 digitos';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.auth.verifyRegistration(email, code).subscribe({
+      next: () => {
+        this.loading = false;
+        this.successMessage = 'Cuenta verificada. Bienvenido a ProManage';
+      },
+      error: (err: unknown) => {
+        this.loading = false;
+        this.errorMessage = this.toRegisterErrorMessage(err);
+      },
+    });
+  }
+
+  resendEmailPin() {
+    if (this.step !== 'email' || this.emailStage !== 'enter_pin') return;
+
+    const email = this.email.trim();
+    if (!email) {
+      this.errorMessage = 'Ingresa tu correo';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.auth.resendRegistrationPin(email).subscribe({
+      next: (res) => {
+        this.loading = false;
+        this.startEmailResendCooldown(res?.cooldown_seconds || 60);
+        this.successMessage =
+          res?.message || 'Te enviamos un nuevo PIN de verificacion a tu correo';
+      },
+      error: (err: unknown) => {
+        this.loading = false;
+        this.errorMessage = this.toRegisterErrorMessage(err);
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.clearEmailResendTimer();
+  }
+
+  private startEmailResendCooldown(seconds: number) {
+    this.clearEmailResendTimer();
+    this.emailResendCooldown = Math.max(0, Math.floor(seconds || 0));
+    if (this.emailResendCooldown <= 0) return;
+
+    this.emailResendTimer = setInterval(() => {
+      this.emailResendCooldown = Math.max(0, this.emailResendCooldown - 1);
+      if (this.emailResendCooldown === 0) {
+        this.clearEmailResendTimer();
+      }
+    }, 1000);
+  }
+
+  private clearEmailResendTimer() {
+    if (this.emailResendTimer) {
+      clearInterval(this.emailResendTimer);
+      this.emailResendTimer = null;
+    }
   }
 
   startGoogle() {

@@ -15,7 +15,7 @@
       </button>
 
       <button type="button" class="provider-btn provider-phone" (click)="selectMethod('phone')">
-        Continuar con número de teléfono
+        Continuar con numero de telefono
       </button>
 
       <div class="divider"><span>o</span></div>
@@ -30,7 +30,7 @@
 
     <div *ngIf="step === 'google'" class="google-step">
       <button type="button" class="link-back" (click)="backToMethods()">
-        ← Elegir otro método
+        <- Elegir otro metodo
       </button>
 
       <div class="form-group">
@@ -50,13 +50,13 @@
         [disabled]="loading"
         (click)="startGoogle()"
       >
-        <span *ngIf="!loading">Enviar código</span>
+        <span *ngIf="!loading">Enviar codigo</span>
         <span *ngIf="loading">Enviando...</span>
       </button>
 
       <div *ngIf="googleStage === 'enter_code'">
         <div class="form-group">
-          <label>Código (6 dígitos)</label>
+          <label>Codigo (6 digitos)</label>
           <input
             type="text"
             name="googleCode"
@@ -68,24 +68,24 @@
         </div>
 
         <div class="form-group">
-          <label>Contraseña</label>
+          <label>Contrasena</label>
           <input
             type="password"
             name="googlePassword"
             [(ngModel)]="googlePassword"
             minlength="6"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Minimo 6 caracteres"
           />
         </div>
 
         <div class="form-group">
-          <label>Confirmar contraseña</label>
+          <label>Confirmar contrasena</label>
           <input
             type="password"
             name="googleConfirmPassword"
             [(ngModel)]="googleConfirmPassword"
             minlength="6"
-            placeholder="Repite tu contraseña"
+            placeholder="Repite tu contrasena"
           />
         </div>
 
@@ -95,7 +95,7 @@
         </button>
 
         <button type="button" class="provider-btn provider-google" [disabled]="loading" (click)="startGoogle()">
-          Reenviar código
+          Reenviar codigo
         </button>
       </div>
 
@@ -105,10 +105,10 @@
 
     <form *ngIf="step === 'email'" (ngSubmit)="onSubmit()" #registerForm="ngForm" novalidate>
       <button type="button" class="link-back" (click)="backToMethods()">
-        ← Elegir otro método
+        <- Elegir otro metodo
       </button>
 
-      <div class="form-group">
+      <div class="form-group" *ngIf="emailStage === 'enter_data'">
         <label>Nombre completo</label>
         <input
           type="text"
@@ -120,18 +120,19 @@
       </div>
 
       <div class="form-group">
-        <label>Correo electrónico</label>
+        <label>Correo electronico</label>
         <input
           type="email"
           name="email"
           [(ngModel)]="email"
           required
+          [readonly]="emailStage === 'enter_pin'"
           placeholder="ejemplo@correo.com"
         />
       </div>
 
-      <div class="form-group">
-        <label>Contraseña</label>
+      <div class="form-group" *ngIf="emailStage === 'enter_data'">
+        <label>Contrasena</label>
         <input
           type="password"
           name="password"
@@ -141,8 +142,8 @@
         />
       </div>
 
-      <div class="form-group">
-        <label>Confirmar contraseña</label>
+      <div class="form-group" *ngIf="emailStage === 'enter_data'">
+        <label>Confirmar contrasena</label>
         <input
           type="password"
           name="confirmPassword"
@@ -152,9 +153,31 @@
         />
       </div>
 
-      <button type="submit" class="btn-register" [disabled]="loading">
+      <div class="form-group" *ngIf="emailStage === 'enter_pin'">
+        <label>PIN de verificacion (6 digitos)</label>
+        <input
+          type="text"
+          name="emailCode"
+          [(ngModel)]="emailCode"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="123456"
+        />
+      </div>
+
+      <button *ngIf="emailStage === 'enter_data'" type="submit" class="btn-register" [disabled]="loading">
         <span *ngIf="!loading">Registrar usuario</span>
         <span *ngIf="loading">Guardando...</span>
+      </button>
+
+      <button *ngIf="emailStage === 'enter_pin'" type="button" class="btn-register" [disabled]="loading" (click)="verifyEmailPin()">
+        <span *ngIf="!loading">Verificar PIN y crear cuenta</span>
+        <span *ngIf="loading">Verificando...</span>
+      </button>
+
+      <button *ngIf="emailStage === 'enter_pin'" type="button" class="provider-btn provider-google" [disabled]="loading || emailResendCooldown > 0" (click)="resendEmailPin()">
+        <span *ngIf="emailResendCooldown === 0">Reenviar PIN</span>
+        <span *ngIf="emailResendCooldown > 0">Reenviar en {{ emailResendCooldown }}s</span>
       </button>
 
       <p *ngIf="errorMessage" class="alert error">{{ errorMessage }}</p>
@@ -163,11 +186,11 @@
 
     <div *ngIf="step === 'phone'" class="phone-step">
       <button type="button" class="link-back" (click)="backToMethods()">
-        ← Elegir otro método
+        <- Elegir otro metodo
       </button>
 
       <div class="form-group">
-        <label>Número de teléfono</label>
+        <label>Numero de telefono</label>
         <input
           type="tel"
           name="phone"
@@ -177,16 +200,16 @@
       </div>
 
       <button type="button" class="btn-register" disabled>
-        Enviar código (próximamente)
+        Enviar codigo (proximamente)
       </button>
 
       <p class="alert info">
-        El registro por teléfono está pendiente de configuración. Por ahora usa correo.
+        El registro por telefono esta pendiente de configuracion. Por ahora usa correo.
       </p>
     </div>
 
     <p class="hint">
-      ¿Ya tienes cuenta? <a routerLink="/login" class="hint-strong">Ve a iniciar sesión.</a>
+      Ya tienes cuenta? <a routerLink="/login" class="hint-strong">Ve a iniciar sesion.</a>
     </p>
 
   </div>
