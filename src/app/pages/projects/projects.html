@@ -1,133 +1,63 @@
-<div class="projects-page">
+<div class="container">
+  <h2>Proyectos</h2>
 
-  <!-- ENCABEZADO -->
-  <header class="projects-header">
-    <div>
-      <h1>Mis proyectos</h1>
-      <p class="subtitle">Sube tus documentos al repositorio y consulta tu historial.</p>
-    </div>
-    <div class="badge-counter">
-      <span class="badge-label">Total proyectos</span>
-      <span class="badge-number">{{ projects.length }}</span>
-    </div>
-  </header>
+  <!-- ✅ Subir -->
+  <div class="card form">
+    <h3>Subir proyecto</h3>
 
-  <!-- CONTENIDO PRINCIPAL -->
-  <div class="content-grid">
+    <input [(ngModel)]="title" placeholder="Título" />
+    <textarea [(ngModel)]="description" placeholder="Descripción"></textarea>
 
-    <!-- CARD FORMULARIO -->
-    <section class="card form-card">
-      <h2 class="card-title">Nuevo proyecto</h2>
-      <p class="card-subtitle">Completa los datos y adjunta el archivo a subir.</p>
+    <input type="file" (change)="onFileChange($event)" />
 
-      <form (ngSubmit)="onSubmit()" #projectForm="ngForm" novalidate>
-        <div class="form-group">
-          <label>Título <span>*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="title"
-            name="title"
-            required
-            placeholder="Ej. Informe semana 10"
-          />
-        </div>
+    <button (click)="upload()">Subir</button>
+  </div>
 
-        <div class="form-group">
-          <label>Descripción</label>
-          <textarea
-            [(ngModel)]="description"
-            name="description"
-            rows="3"
-            placeholder="Breve descripción del proyecto"
-          ></textarea>
-        </div>
+  <!-- ✅ Buscar -->
+  <div class="search-bar">
+    <input [(ngModel)]="search" placeholder="Buscar por título, descripción o usuario..." />
+    <button (click)="onSearch()">Buscar</button>
+    <button (click)="search=''; onSearch()">Limpiar</button>
+  </div>
 
-        <div class="form-group">
-          <label>Archivo <span>*</span></label>
-          <div class="file-input-wrapper">
-            <input
-              type="file"
-              id="project-file"
-              (change)="onFileChange($event)"
-            />
-          </div>
-          <small class="help-text">Formatos recomendados: PDF, DOCX, PPTX, ZIP.</small>
-        </div>
+  <p *ngIf="loading">Cargando...</p>
 
-        <button
-          type="submit"
-          class="btn-primary"
-          [class.loading]="loading"
-          [disabled]="loading"
-        >
-          <span *ngIf="!loading">Subir proyecto</span>
-          <span *ngIf="loading">Subiendo...</span>
-        </button>
-
-        <p *ngIf="errorMessage" class="alert error">{{ errorMessage }}</p>
-        <p *ngIf="successMessage" class="alert success">{{ successMessage }}</p>
-      </form>
-    </section>
-
-    <!-- CARD LISTA -->
-    <section class="card table-card">
-      <div class="table-header">
-        <h2 class="card-title">Lista de proyectos</h2>
+  <!-- ✅ Lista -->
+  <div *ngFor="let p of projects; trackBy: trackById" class="card">
+    <div class="row">
+      <div class="info">
+        <h3>{{ p.title }}</h3>
+        <p class="meta">Subido por: <b>{{ uploaderName(p) }}</b></p>
+        <p class="meta">Estado: <b>{{ p.status }}</b></p>
+        <p class="desc">{{ p.description }}</p>
       </div>
 
-      <ng-container *ngIf="projects.length > 0; else noProjects">
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th class="th-actions">Archivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let project of projects">
-                <td class="cell-title">
-                  <span class="title-text">{{ project.title }}</span>
-                </td>
-                <td>{{ project.description || '—' }}</td>
-                <td>
-                  <span
-                    class="status-pill"
-                    [ngClass]="{
-                      'status-active': project.status === 'activo',
-                      'status-completed': project.status === 'completado',
-                      'status-archived': project.status === 'archivado'
-                    }"
-                  >
-                    {{ project.status || '—' }}
-                  </span>
-                </td>
-                <td>{{ project.created_at | date: 'short' }}</td>
-                <td class="td-actions">
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    (click)="downloadProject(project.id)"
-                  >
-                    Descargar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ng-container>
+      <div class="actions">
+        <button (click)="download(p.id)">Descargar</button>
+        <button (click)="startEdit(p)">Editar</button>
+        <button class="danger" (click)="remove(p.id)">Eliminar</button>
+      </div>
+    </div>
 
-      <ng-template #noProjects>
-        <div class="empty-state">
-          <p>Aún no has subido proyectos.</p>
-          <span>Empieza creando uno desde el formulario de la izquierda.</span>
-        </div>
-      </ng-template>
-    </section>
+    <!-- ✅ Editar inline -->
+    <div *ngIf="editingId === p.id" class="edit-box">
+      <label>Título</label>
+      <input [(ngModel)]="editTitle" />
 
+      <label>Descripción</label>
+      <textarea [(ngModel)]="editDescription"></textarea>
+
+      <label>Estado</label>
+      <select [(ngModel)]="editStatus">
+        <option value="PENDIENTE">PENDIENTE</option>
+        <option value="EN_PROCESO">EN PROCESO</option>
+        <option value="FINALIZADO">FINALIZADO</option>
+      </select>
+
+      <div class="edit-actions">
+        <button (click)="saveEdit(p.id)">Guardar</button>
+        <button (click)="cancelEdit()">Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>

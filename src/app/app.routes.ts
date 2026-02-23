@@ -1,18 +1,62 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './pages/login/login';
-import { RegisterComponent } from './pages/register/register';
-import { ProjectsComponent } from './pages/projects/projects';
-import { authGuard } from './guards/auth-guard';   // 👈 AQUI VA EL IMPORT NUEVO
+import { authGuard } from './core/auth.guard';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
 
   {
-    path: 'projects',
-    component: ProjectsComponent,
-    canActivate: [authGuard],   // 👈 Protegemos la ruta
+    path: 'login',
+    loadComponent: () =>
+      import('./pages/login/login').then((m) => m.LoginPage),
   },
 
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  // ✅ Comunidad (Proyectos)
+  {
+    path: 'projects',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/projects/projects').then((m) => m.ProjectsPage),
+  },
+
+  // ✅ Mis proyectos
+  {
+    path: 'projects/my',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/projects-my/projects-my').then(
+        (m) => m.ProjectsMyComponent,
+      ),
+  },
+
+  // ✅ Estudiante
+  {
+    path: 'student/courses',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/student-courses/student-courses').then(
+        (m) => m.StudentCoursesPage,
+      ),
+  },
+
+  // ✅ Entregas estudiante
+  {
+    path: 'student/courses/:courseId/assignments',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/student-assignments/student-assignments').then(
+        (m) => m.StudentAssignmentsPage,
+      ),
+  },
+
+  // ✅ Docente
+  {
+    path: 'teacher/courses',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/teacher-courses/teacher-courses').then(
+        (m) => m.TeacherCoursesPage,
+      ),
+  },
+
+  { path: '**', redirectTo: 'login' },
 ];
