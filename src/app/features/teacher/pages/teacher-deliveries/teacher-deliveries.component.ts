@@ -112,7 +112,9 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
   private queryParamSub?: Subscription;
   private searchSub?: Subscription;
+  private searchFilterSub?: Subscription;
   private searchTerms$ = new Subject<string>();
+  private searchFilterTerms$ = new Subject<string>();
 
   constructor(
     private teacherService: TeacherService,
@@ -125,6 +127,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadCourses();
     this.setupSearchSuggestions();
+    this.setupRealtimeSearchFilter();
 
     this.sub = this.route.paramMap.subscribe((params) => {
       const courseId = params.get('courseId');
@@ -148,6 +151,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
     this.queryParamSub?.unsubscribe();
     this.searchSub?.unsubscribe();
+    this.searchFilterSub?.unsubscribe();
     this.revokeEvidenceViewerUrl();
   }
 
@@ -164,6 +168,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   onSearchInput(value: string): void {
     this.q = value;
     this.searchTerms$.next(value);
+    this.searchFilterTerms$.next(value);
   }
 
   onSearchFocus(): void {
@@ -401,6 +406,18 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
       .subscribe((items) => {
         this.suggestions = this.mapSuggestions(items);
         this.showSuggestions = this.hasSearchFocus && this.q.trim().length >= 2;
+      });
+  }
+
+  private setupRealtimeSearchFilter(): void {
+    this.searchFilterSub = this.searchFilterTerms$
+      .pipe(
+        map((term: string) => term.trim()),
+        debounceTime(250),
+        distinctUntilChanged(),
+      )
+      .subscribe(() => {
+        this.applyFilters();
       });
   }
 

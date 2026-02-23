@@ -11,7 +11,11 @@
 
   <section class="card filters">
     <div class="filters-row">
-      <input class="input" [(ngModel)]="q" (keyup.enter)="applyFilters()" placeholder="Buscar por curso o actividad..." />
+      <input
+        class="input"
+        [ngModel]="q"
+        (ngModelChange)="onSearchInput($event)"
+        placeholder="Buscar por curso o actividad..." />
 
       <select class="input" [(ngModel)]="status" (change)="applyFilters()">
         <option value="PENDIENTE">Pendientes</option>
@@ -30,7 +34,6 @@
         <option value="created_at_desc">Más recientes</option>
       </select>
 
-      <button class="btn btn-primary" type="button" (click)="applyFilters()">Filtrar</button>
     </div>
   </section>
 

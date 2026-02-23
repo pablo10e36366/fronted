@@ -307,6 +307,36 @@ import {
       opacity: 0.9;
     }
 
+    [data-theme="dark"] .alert-item.warning {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+    }
+
+    [data-theme="dark"] .alert-item.danger {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(248, 113, 113, 0.45);
+      color: #fca5a5;
+    }
+
+    [data-theme="dark"] .alert-item.info {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(96, 165, 250, 0.45);
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .alert-item.success {
+      background: rgba(34, 197, 94, 0.14);
+      border-color: rgba(74, 222, 128, 0.45);
+      color: #86efac;
+    }
+
+    [data-theme="dark"] .alert-text p,
+    [data-theme="dark"] .alert-count {
+      color: inherit;
+      opacity: 0.92;
+    }
+
     @media (max-width: 1400px) {
       .kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));

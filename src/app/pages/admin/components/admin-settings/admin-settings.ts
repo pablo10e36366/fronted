@@ -65,12 +65,18 @@ import { AdminService, SystemSettings } from '../../../../core/data-access/admin
     </div>
   `,
   styles: [`
-    .admin-settings { padding: 1rem; max-width: 1200px; margin: 0 auto; }
+    .admin-settings { padding: 1rem; max-width: 1200px; margin: 0 auto; color: var(--slate-800); }
     h2 { margin-bottom: 2rem; color: var(--slate-800); }
     
     .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
     
-    .setting-card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--slate-200); }
+    .setting-card {
+      background: var(--card-bg, #fff);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--slate-200);
+      box-shadow: var(--shadow-card);
+    }
     h3 { margin-top: 0; padding-bottom: 1rem; border-bottom: 1px solid var(--slate-100); font-size: 1rem; color: var(--slate-600); }
     
     .field { margin-top: 1rem; }
@@ -78,10 +84,10 @@ import { AdminService, SystemSettings } from '../../../../core/data-access/admin
     input[type="text"], input[type="number"] { 
       width: 100%; 
       padding: 0.5rem; 
-      border: 1px solid #e2e8f0; 
+      border: 1px solid var(--slate-200); 
       border-radius: 6px; 
-      background: white; 
-      color: #1e293b; 
+      background: var(--card-bg, #fff); 
+      color: var(--slate-800); 
       font-family: inherit;
     }
     input[type="text"]:focus, input[type="number"]:focus {
@@ -96,6 +102,7 @@ import { AdminService, SystemSettings } from '../../../../core/data-access/admin
       align-items: center; 
       margin-top: 1rem; 
       padding: 0.5rem 0; 
+      color: var(--slate-700);
     }
 
     /* Toggle Switch */
@@ -119,7 +126,7 @@ import { AdminService, SystemSettings } from '../../../../core/data-access/admin
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #e2e8f0;
+      background-color: var(--slate-300);
       transition: 0.3s;
       border-radius: 24px;
     }
@@ -131,7 +138,7 @@ import { AdminService, SystemSettings } from '../../../../core/data-access/admin
       width: 18px;
       left: 3px;
       bottom: 3px;
-      background-color: white;
+      background-color: var(--card-bg, #fff);
       transition: 0.3s;
       border-radius: 50%;
     }

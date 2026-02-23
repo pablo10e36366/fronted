@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { combineLatest } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { StudentService } from '../../data-access/student.service';
@@ -36,11 +37,13 @@ export class StudentDeliveriesComponent implements OnInit {
 
   courses: Array<{ id: string; name: string }> = [];
   private readonly destroyRef = inject(DestroyRef);
+  private readonly searchTerms$ = new Subject<string>();
 
   constructor(private studentService: StudentService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.loadCoursesForFilter();
+    this.setupRealtimeSearch();
 
     // Keep URL-driven filters in sync (supports deep links from dashboard)
     let firstEmission = true;
@@ -85,6 +88,11 @@ export class StudentDeliveriesComponent implements OnInit {
   applyFilters(): void {
     this.page = 1;
     this.load();
+  }
+
+  onSearchInput(value: string): void {
+    this.q = value;
+    this.searchTerms$.next(value);
   }
 
   goToPage(page: number): void {
@@ -152,6 +160,19 @@ export class StudentDeliveriesComponent implements OnInit {
         error: () => {
           this.courses = [];
         },
+      });
+  }
+
+  private setupRealtimeSearch(): void {
+    this.searchTerms$
+      .pipe(
+        map((term) => term.trim()),
+        debounceTime(250),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        this.applyFilters();
       });
   }
 }

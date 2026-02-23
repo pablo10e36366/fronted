@@ -19,7 +19,6 @@
           class="input"
           [ngModel]="q"
           (ngModelChange)="onSearchInput($event)"
-          (keyup.enter)="applyFilters()"
           (focus)="onSearchFocus()"
           (blur)="onSearchBlur()"
           autocomplete="off"
@@ -57,12 +56,6 @@
         <option *ngFor="let c of courses" [value]="c.id">{{ c.name }}</option>
       </select>
 
-      <select class="input" [(ngModel)]="sort" (change)="applyFilters()">
-        <option value="priority_desc">Prioridad</option>
-        <option value="created_at_desc">Más recientes</option>
-      </select>
-
-      <button class="btn btn-primary" type="button" (click)="applyFilters()">Filtrar</button>
     </div>
   </section>
 
@@ -319,3 +312,5 @@
     </div>
   </div>
 </div>
+
+

@@ -94,11 +94,26 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
               </svg>
               Modo God
             </a>
-            <a routerLink="/admin" routerLinkActive="active" class="nav-item">
+            <a
+              routerLink="/admin"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="nav-item">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               </svg>
               Dashboard
+            </a>
+            <a
+              routerLink="/admin/notifications"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="nav-item">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              Notificaciones
             </a>
           </div>
 

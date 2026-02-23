@@ -61,7 +61,7 @@ h1 {
 
 .filters-row {
   display: grid;
-  grid-template-columns: 1.6fr 0.9fr 1fr 0.9fr auto;
+  grid-template-columns: 1.8fr 0.95fr 1fr auto;
   gap: 10px;
   align-items: center;
 }

@@ -52,6 +52,33 @@ export interface AdminDashboardStats {
     alerts: AdminDashboardAlert[];
 }
 
+export type RoleUpgradeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface RoleUpgradeRequestItem {
+    id: string;
+    userId: number;
+    requestedRole: string;
+    message: string | null;
+    status: RoleUpgradeRequestStatus;
+    adminNote: string | null;
+    reviewedByUserId: number | null;
+    reviewedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    user?: {
+        id: number;
+        name?: string | null;
+        email?: string | null;
+    } | null;
+}
+
+export interface RoleUpgradeRequestListResponse {
+    items: RoleUpgradeRequestItem[];
+    total: number;
+    page: number;
+    page_size: number;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -102,5 +129,33 @@ export class AdminService {
 
     getDashboardStats(): Observable<AdminDashboardStats> {
         return this.http.get<AdminDashboardStats>(`${this.apiUrl}/dashboard-stats`);
+    }
+
+    // --- ROLE UPGRADE REQUESTS ---
+
+    getRoleUpgradeRequests(filters?: {
+        status?: RoleUpgradeRequestStatus;
+        search?: string;
+        page?: number;
+        pageSize?: number;
+    }): Observable<RoleUpgradeRequestListResponse> {
+        let params = new HttpParams();
+        if (filters?.status) params = params.set('status', filters.status);
+        if (filters?.search) params = params.set('search', filters.search);
+        if (filters?.page) params = params.set('page', String(filters.page));
+        if (filters?.pageSize) params = params.set('page_size', String(filters.pageSize));
+
+        return this.http.get<RoleUpgradeRequestListResponse>(`${this.apiUrl}/role-upgrade-requests`, { params });
+    }
+
+    resolveRoleUpgradeRequest(
+        requestId: string,
+        decision: 'APPROVE' | 'REJECT',
+        notes?: string
+    ): Observable<RoleUpgradeRequestItem> {
+        return this.http.patch<RoleUpgradeRequestItem>(`${this.apiUrl}/role-upgrade-requests/${requestId}`, {
+            decision,
+            notes: notes || undefined,
+        });
     }
 }

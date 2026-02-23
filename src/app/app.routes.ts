@@ -1,9 +1,10 @@
-import { Routes } from '@angular/router';
+﻿import { Routes } from '@angular/router';
 import { LoginComponent } from './pages/login/login';
 import { RegisterComponent } from './pages/register/register';
 import { RegisterVerifyComponent } from './pages/register-verify/register-verify';
 import { ProjectsComponent } from './pages/projects/projects';
 import { AdminComponent } from './pages/admin/admin';
+import { AdminNotificationsPageComponent } from './pages/admin/admin-notifications-page';
 import { RepositoryComponent } from './pages/repository/repository';
 import { EvidenceDetailComponent } from './pages/evidence-detail/evidence-detail';
 import { FoldersComponent } from './pages/folders/folders';
@@ -81,7 +82,7 @@ export const routes: Routes = [
   {
     path: 'teacher',
     component: TeacherLayoutComponent,
-    // Protegemos la ruta con authGuard y roleGuard para que sólo usuarios con
+    // Protegemos la ruta con authGuard y roleGuard para que sÃ³lo usuarios con
     // el rol esperado (docente) puedan acceder.
     canActivate: [authGuard, roleGuard],
     data: { expectedRole: 'docente' },
@@ -131,6 +132,12 @@ export const routes: Routes = [
         data: { expectedRole: 'admin' }
       },
       {
+        path: 'admin/notifications',
+        component: AdminNotificationsPageComponent,
+        canActivate: [roleGuard],
+        data: { expectedRole: 'admin' }
+      },
+      {
         path: 'admin',
         component: AdminComponent,
         canActivate: [roleGuard],
@@ -151,3 +158,4 @@ export const routes: Routes = [
   // Fallback si no logueado
   { path: '**', redirectTo: 'login' }
 ];
+
