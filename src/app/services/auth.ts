@@ -16,13 +16,13 @@ import { decodeJwtPayload, isTokenValid } from '../core/utils/jwt.utils';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = environment.apiUrl;
+  // ✅ FIX: apiUrl blindado para que NO use localhost en Vercel
+  private apiUrl = this.resolveApiUrl();
+
   private readonly tokenKey = 'auth_token';
   private readonly refreshTokenKey = 'auth_refresh_token';
 
-  private currentUserSubject =
-    new BehaviorSubject<JwtUserPayload | null>(null);
-
+  private currentUserSubject = new BehaviorSubject<JwtUserPayload | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
@@ -31,8 +31,8 @@ export class AuthService {
   ) {
     // Inicializar usuario desde token si existe y es válido
     if (typeof window !== 'undefined') {
-      // MigraciÃ³n simple: si el token estaba en localStorage (versiÃ³n anterior),
-      // moverlo a sessionStorage para que sea por pestaÃ±a.
+      // Migración simple: si el token estaba en localStorage (versión anterior),
+      // moverlo a sessionStorage para que sea por pestaña.
       const sessionToken = sessionStorage.getItem(this.tokenKey);
       const legacyToken = localStorage.getItem(this.tokenKey);
       if (!sessionToken && legacyToken) {
@@ -56,6 +56,39 @@ export class AuthService {
         this.clearLocalAuth();
       }
     }
+  }
+
+  /**
+   * ✅ FIX: resuelve el apiUrl correctamente en SSR/Vercel
+   * 1) Si existe window.__PROMANAGE_API_URL__ lo usa (override runtime)
+   * 2) Usa environment.apiUrl por defecto
+   * 3) Si detecta localhost EN PRODUCCIÓN (Vercel), fuerza Railway
+   */
+  private resolveApiUrl(): string {
+    const fallback = environment.apiUrl;
+
+    if (typeof window === 'undefined') {
+      // SSR: retorna lo que viene del environment (no window)
+      return fallback;
+    }
+
+    const w = window as any;
+    const runtimeOverride: string | undefined = w.__PROMANAGE_API_URL__;
+
+    let url = (runtimeOverride || fallback || '').trim();
+
+    // Normalizar sin slash final
+    url = url.replace(/\/+$/, '');
+
+    const isLocalhost = url.includes('localhost') || url.includes('127.0.0.1');
+    const isVercel = window.location.hostname.includes('vercel.app');
+
+    // ✅ Si por alguna razón el build dejó localhost y estamos en Vercel, lo corregimos
+    if (isLocalhost && isVercel) {
+      url = 'https://promanage-backend-production-ec6c.up.railway.app/api';
+    }
+
+    return url;
   }
 
   /* ===========================
@@ -270,7 +303,7 @@ export class AuthService {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(this.tokenKey);
       sessionStorage.removeItem(this.refreshTokenKey);
-      // Limpieza por compatibilidad si quedÃ³ algo viejo
+      // Limpieza por compatibilidad si quedó algo viejo
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.refreshTokenKey);
     }
@@ -296,7 +329,10 @@ export class AuthService {
     if (!refresh) return throwError(() => new Error('No refresh token'));
 
     return this.http
-      .post<{ access_token: string }>(`${this.apiUrl}${API_ROUTES.auth.refresh}`, { refresh_token: refresh })
+      .post<{ access_token: string }>(
+        `${this.apiUrl}${API_ROUTES.auth.refresh}`,
+        { refresh_token: refresh }
+      )
       .pipe(
         tap((res) => {
           if (typeof window === 'undefined') return;
