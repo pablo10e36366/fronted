@@ -173,7 +173,7 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
 
       <!-- MAIN CONTENT AREA -->
       <main class="main-area">
-        <header class="top-bar">
+        <header class="top-bar" *ngIf="showTopSearchBar">
           <div class="search-container">
             <app-search-bar></app-search-bar>
           </div>
@@ -631,6 +631,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   isAdminRole(role: string | null | undefined): boolean {
     return String(role || '').toLowerCase() === 'admin';
+  }
+
+  get showTopSearchBar(): boolean {
+    const path = (this.router.url || '').split('?')[0];
+    return !['/projects', '/admin/notifications', '/admin/archived'].includes(path);
   }
 }
 
