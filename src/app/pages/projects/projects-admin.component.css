@@ -1085,7 +1085,7 @@
 }
 
 .row {
-  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
@@ -1106,6 +1106,10 @@
 .toolbar-right {
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.course-filter {
+  min-width: 220px;
 }
 
 .actions-cell {

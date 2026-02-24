@@ -86,35 +86,6 @@
       </div>
 
       <div class="row" *ngIf="activeView === 'courses'">
-        <div class="new-project card">
-          <h3>Nuevo curso</h3>
-          <p class="muted">Completa los datos para iniciar un nuevo curso.</p>
-          <div class="form-field">
-            <label>Titulo *</label>
-            <input #newProjectTitle name="title" [(ngModel)]="title" placeholder="Ej. Informe semana 10" />
-          </div>
-          <div class="form-field">
-            <label>Descripcion</label>
-            <textarea [(ngModel)]="description" placeholder="Breve descripcion..."></textarea>
-          </div>
-          <div class="form-field">
-            <label>Archivo del curso</label>
-            <app-file-upload-zone
-              class="project-dropzone"
-              (fileSelected)="onProjectFileSelected($event)"
-              [acceptedTypes]="'.zip,.rar,.7z,.pdf,.docx,.doc,.xlsx,.pptx'"
-              [compact]="true"
-              [maxSizeMb]="100"
-              labelStrong="Arrastra tu archivo aqui"
-              labelSub="o haz clic para seleccionar"
-              hintText="ZIP, RAR, PDF, DOCX (max. 100MB)">
-            </app-file-upload-zone>
-          </div>
-          <div class="form-field">
-            <button class="btn primary" type="button" (click)="createProject()" [disabled]="loading">Crear</button>
-          </div>
-        </div>
-
         <div class="table-card card">
           <div class="toolbar">
             <div class="toolbar-row">
@@ -132,7 +103,6 @@
 
               <div class="toolbar-right">
                 <button class="btn ghost" type="button" (click)="exportProjects()">Exportar</button>
-                <button class="btn primary" type="button" (click)="focusNewProject()">+ Nuevo Curso</button>
               </div>
             </div>
           </div>
@@ -185,6 +155,16 @@
                   placeholder="Buscar documento, curso o tipo..."
                 />
               </div>
+
+              <select
+                class="course-filter"
+                [(ngModel)]="selectedDocumentCourseId"
+                (change)="onDocumentCourseChange()">
+                <option value="ALL">Todos los cursos</option>
+                <option *ngFor="let option of documentCourseOptions" [value]="option.id">
+                  {{ option.title }}
+                </option>
+              </select>
             </div>
 
             <div class="toolbar-right">
@@ -234,8 +214,6 @@
       </div>
     </section>
   </main>
-
-  <button class="fab" [class.is-hidden]="activeView === 'documents'" type="button" (click)="activeView === 'courses' ? focusNewProject() : null">+</button>
 </div>
 
 <div class="modal-backdrop" *ngIf="showEditModal">

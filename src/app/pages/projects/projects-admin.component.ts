@@ -1,15 +1,13 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Subject, Subscription, catchError, forkJoin, map, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { Subscription, catchError, forkJoin, map, of } from 'rxjs';
 
 import { ProjectService } from '../../core/data-access/project.service';
-import { EvidenceService } from '../../core/data-access/evidence.service';
+import { EvidenceService, StudentFilesByActivityGroup } from '../../core/data-access/evidence.service';
 import { EvidenceDto, ProjectDto } from '../../core/models/project.models';
-import { FileUploadZoneComponent } from '../../components/file-upload-zone/file-upload-zone';
 
 type ProjectStatusType = 'draft' | 'in_progress' | 'in_review' | 'completed';
 
@@ -52,12 +50,9 @@ type DocumentViewerStorageKind = 'comment';
   selector: 'app-projects-admin',
   templateUrl: './projects-admin.component.html',
   styleUrls: ['./projects-admin.component.css'],
-  imports: [CommonModule, FormsModule, RouterModule, FileUploadZoneComponent],
+  imports: [CommonModule, FormsModule, RouterModule],
 })
 export class ProjectsAdminComponent implements OnInit, OnDestroy {
-  @ViewChild(FileUploadZoneComponent) fileUploadZone!: FileUploadZoneComponent;
-  @ViewChild('newProjectTitle') newProjectTitle?: ElementRef<HTMLInputElement>;
-
   activeView: 'courses' | 'documents' = 'courses';
 
   projects: ProjectUI[] = [];
@@ -72,14 +67,10 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   kpiScore = 0;
 
   searchTerm = '';
-  searchSubject = new Subject<string>();
+  selectedDocumentCourseId = 'ALL';
 
   sortBy: 'title' | 'createdAt' = 'createdAt';
   sortDirection: 'asc' | 'desc' = 'desc';
-
-  title = '';
-  description = '';
-  selectedFile: File | null = null;
 
   loading = false;
   loadingDocuments = false;
@@ -118,46 +109,12 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.setupSearch();
     this.loadProjects();
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
     this.revokeViewerUrl();
-  }
-
-  private setupSearch(): void {
-    const sub = this.searchSubject
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((term: string) => {
-          this.loading = true;
-          this.errorMessage = '';
-          const trimmedTerm = term.trim();
-          const request$ = trimmedTerm
-            ? this.projectsService.searchProjects(trimmedTerm)
-            : this.projectsService.getAllProjects();
-
-          return request$.pipe(
-            catchError((err) => {
-              this.handleError(err);
-              return of([] as ProjectDto[]);
-            }),
-          );
-        }),
-      )
-      .subscribe((projectsResponse: ProjectDto[] | unknown) => {
-        const projects = this.extractProjects(projectsResponse);
-        this.projects = projects.map((project) => this.enrichProject(project));
-        this.applyFilters();
-        this.updateKPIs();
-        this.loadDocuments(this.projects);
-        this.loading = false;
-      });
-
-    this.subscriptions.add(sub);
   }
 
   private enrichProject(project: ProjectDto): ProjectUI {
@@ -219,7 +176,9 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
     const sub = this.projectsService.getAllProjects().subscribe({
       next: (projectsResponse) => {
-        const projects = this.extractProjects(projectsResponse);
+        const projects = this.extractProjects(projectsResponse).filter(
+          (project) => !this.isArchivedProject(project),
+        );
         this.projects = projects.map((project) => this.enrichProject(project));
         this.applyFilters();
         this.updateKPIs();
@@ -252,12 +211,18 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   private applyDocumentFilters(): void {
     const normalizedSearchTerm = this.searchTerm.toLowerCase().trim();
     this.filteredDocuments = this.documents.filter((document) => {
+      const matchesCourse =
+        this.selectedDocumentCourseId === 'ALL' || document.projectId === this.selectedDocumentCourseId;
+
       return (
-        !normalizedSearchTerm ||
-        document.title.toLowerCase().includes(normalizedSearchTerm) ||
-        document.projectTitle.toLowerCase().includes(normalizedSearchTerm) ||
-        document.ownerName.toLowerCase().includes(normalizedSearchTerm) ||
-        document.mimeType.toLowerCase().includes(normalizedSearchTerm)
+        matchesCourse &&
+        (
+          !normalizedSearchTerm ||
+          document.title.toLowerCase().includes(normalizedSearchTerm) ||
+          document.projectTitle.toLowerCase().includes(normalizedSearchTerm) ||
+          document.ownerName.toLowerCase().includes(normalizedSearchTerm) ||
+          document.mimeType.toLowerCase().includes(normalizedSearchTerm)
+        )
       );
     });
   }
@@ -276,17 +241,18 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
       this.applyDocumentFilters();
       return;
     }
+    this.applyFilters();
+  }
 
-    this.searchSubject.next(term);
-    if (!term.trim()) {
-      this.applyFilters();
-    }
+  onDocumentCourseChange(): void {
+    this.applyDocumentFilters();
   }
 
   setActiveView(view: 'courses' | 'documents'): void {
     if (this.activeView === view) return;
     this.activeView = view;
     this.searchTerm = '';
+    this.selectedDocumentCourseId = 'ALL';
 
     if (view === 'courses') {
       this.applyFilters();
@@ -320,50 +286,6 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
       }
       return 0;
     });
-  }
-
-  focusNewProject(): void {
-    const titleInput = this.newProjectTitle?.nativeElement;
-    if (!titleInput) return;
-    titleInput.focus();
-    titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  onProjectFileSelected(file: File | undefined): void {
-    this.selectedFile = file || null;
-    if (this.selectedFile && !this.title.trim()) {
-      this.title = this.selectedFile.name.replace(/\.[^/.]+$/, '');
-    }
-  }
-
-  createProject(): void {
-    if (!this.title.trim()) {
-      this.errorMessage = 'El titulo del proyecto es obligatorio.';
-      return;
-    }
-
-    this.loading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    const sub = this.projectsService
-      .uploadProject(this.title.trim(), this.description.trim(), this.selectedFile)
-      .subscribe({
-        next: () => {
-          this.successMessage = 'Proyecto creado correctamente.';
-          this.title = '';
-          this.description = '';
-          this.selectedFile = null;
-          this.fileUploadZone?.reset?.();
-          this.loadProjects();
-        },
-        error: (err) => {
-          this.loading = false;
-          this.handleError(err);
-        },
-      });
-
-    this.subscriptions.add(sub);
   }
 
   exportProjects(): void {
@@ -537,11 +459,30 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
 
     this.loadingDocuments = true;
     const requests = projects.map((project) =>
-      this.evidenceService.getFiles(project.id).pipe(
-        map((files) => ({
-          project,
-          files: (files || []).filter((file) => !file.isFolder),
-        })),
+      forkJoin({
+        courseFiles: this.evidenceService.getFiles(project.id).pipe(catchError(() => of([] as EvidenceDto[]))),
+        studentFilesByActivity: this.evidenceService
+          .getStudentFilesByActivity(project.id)
+          .pipe(catchError(() => of([] as StudentFilesByActivityGroup[]))),
+      }).pipe(
+        map(({ courseFiles, studentFilesByActivity }) => {
+          const visibleCourseFiles = (courseFiles || []).filter((file) => !file.isFolder);
+          const visibleStudentFiles = (studentFilesByActivity || [])
+            .flatMap((group) => group.files || [])
+            .filter((file) => !file.isFolder);
+
+          const uniqueFiles = new Map<string, EvidenceDto>();
+          [...visibleCourseFiles, ...visibleStudentFiles].forEach((file) => {
+            if (file?.id && !uniqueFiles.has(file.id)) {
+              uniqueFiles.set(file.id, file);
+            }
+          });
+
+          return {
+            project,
+            files: Array.from(uniqueFiles.values()),
+          };
+        }),
         catchError(() => of({ project, files: [] as EvidenceDto[] })),
       ),
     );
@@ -549,16 +490,21 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     const sub = forkJoin(requests).subscribe({
       next: (results) => {
         this.documents = results.flatMap(({ project, files }) =>
-          files.map((file) => ({
-            evidenceId: file.id,
-            projectId: project.id,
-            title: file.title || 'Documento',
-            projectTitle: project.title || 'Curso',
-            ownerName: project.owner?.name || 'Sin propietario',
-            ownerEmail: project.owner?.email || 'N/A',
-            mimeType: file.mimeType || 'Archivo',
-            updatedAt: file.updatedAt,
-          })),
+          files.map((file) => {
+            const ownerName = file.author?.name || project.owner?.name || 'Sin propietario';
+            const ownerEmail = file.author?.email || project.owner?.email || 'N/A';
+
+            return {
+              evidenceId: file.id,
+              projectId: project.id,
+              title: file.title || 'Documento',
+              projectTitle: project.title || 'Curso',
+              ownerName,
+              ownerEmail,
+              mimeType: file.mimeType || 'Archivo',
+              updatedAt: file.updatedAt,
+            };
+          }),
         );
         this.applyDocumentFilters();
         this.loadingDocuments = false;
@@ -916,5 +862,17 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     }
 
     return [];
+  }
+
+  get documentCourseOptions(): Array<{ id: string; title: string }> {
+    return this.projects
+      .map((project) => ({ id: project.id, title: project.title || 'Curso sin titulo' }))
+      .sort((left, right) => left.title.localeCompare(right.title, 'es', { sensitivity: 'base' }));
+  }
+
+  private isArchivedProject(project: ProjectDto): boolean {
+    if (project?.isArchived === true) return true;
+    const status = this.normalizeStatusToken(project?.status);
+    return status === 'archived' || status === 'archivado' || status === 'closed';
   }
 }
