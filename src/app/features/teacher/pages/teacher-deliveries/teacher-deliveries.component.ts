@@ -103,6 +103,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
   evidenceViewerSheetCols: number[] = [];
   evidenceViewerObjectUrl: string | null = null;
   evidenceViewerSafeUrl: SafeResourceUrl | null = null;
+  evidenceViewerPdfMobileFallback = false;
   evidenceViewerDetail: TeacherSubmissionDetail | null = null;
   evidenceViewerCommentDraft = '';
   evidenceViewerGradeDraft = '';
@@ -506,6 +507,7 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     this.evidenceViewerSheetRows = [];
     this.evidenceViewerSheetCols = [];
     this.evidenceViewerDetail = null;
+    this.evidenceViewerPdfMobileFallback = false;
     this.evidenceViewerCommentDraft = '';
     this.evidenceViewerGradeDraft = '';
     this.evidenceViewerReviewLoading = false;
@@ -614,11 +616,47 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     });
   }
 
+  openEvidenceInNewTab(): void {
+    const openUrl = (url: string): void => {
+      const popup = window.open(url, '_blank', 'noopener,noreferrer');
+      if (popup) return;
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.click();
+    };
+
+    if (this.evidenceViewerObjectUrl) {
+      openUrl(this.evidenceViewerObjectUrl);
+      return;
+    }
+
+    const evidenceId = this.evidenceViewerDetail?.evidence_id;
+    if (!evidenceId) return;
+
+    this.evidenceViewerLoading = true;
+    this.evidenceService.downloadEvidenceFile(evidenceId).subscribe({
+      next: (blob) => {
+        this.revokeEvidenceViewerUrl();
+        this.evidenceViewerObjectUrl = URL.createObjectURL(blob);
+        this.evidenceViewerLoading = false;
+        openUrl(this.evidenceViewerObjectUrl);
+      },
+      error: () => {
+        this.evidenceViewerLoading = false;
+        this.evidenceViewerError = 'No se pudo abrir el archivo en una pestaña nueva.';
+      },
+    });
+  }
+
   private async prepareEvidenceViewer(blob: Blob, fileName: string): Promise<void> {
     try {
       const effectiveMimeType = (blob.type || '').toLowerCase();
       this.evidenceViewerMimeType = effectiveMimeType || 'application/octet-stream';
       this.evidenceViewerMode = this.resolveEvidenceViewerMode(effectiveMimeType, fileName);
+      this.evidenceViewerPdfMobileFallback = false;
 
       if (this.evidenceViewerMode === 'text') {
         this.evidenceViewerTextContent = await blob.text();
@@ -646,9 +684,14 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
 
       this.evidenceViewerObjectUrl = URL.createObjectURL(blob);
       if (this.evidenceViewerMode === 'pdf' || this.evidenceViewerMode === 'iframe') {
-        this.evidenceViewerSafeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-          this.evidenceViewerObjectUrl,
-        );
+        if (this.evidenceViewerMode === 'pdf' && this.shouldUsePdfMobileFallback()) {
+          this.evidenceViewerSafeUrl = null;
+          this.evidenceViewerPdfMobileFallback = true;
+        } else {
+          this.evidenceViewerSafeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+            this.evidenceViewerObjectUrl,
+          );
+        }
       }
       this.evidenceViewerLoading = false;
     } catch {
@@ -705,6 +748,19 @@ export class TeacherDeliveriesComponent implements OnInit, OnDestroy {
     if (textLike) return 'text';
 
     return 'unsupported';
+  }
+
+  private shouldUsePdfMobileFallback(): boolean {
+    if (typeof window === 'undefined') return false;
+    const narrowViewport = window.matchMedia('(max-width: 760px)').matches;
+    const ua = (window.navigator?.userAgent || '').toLowerCase();
+    const mobileUa =
+      ua.includes('android') ||
+      ua.includes('iphone') ||
+      ua.includes('ipad') ||
+      ua.includes('ipod') ||
+      ua.includes('mobile');
+    return narrowViewport || mobileUa;
   }
 
   private async loadSpreadsheet(blob: Blob): Promise<void> {

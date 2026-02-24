@@ -203,11 +203,18 @@
       <div class="state-banner" *ngIf="!evidenceViewerLoading && evidenceViewerError">{{ evidenceViewerError }}</div>
       <ng-container *ngIf="!evidenceViewerLoading && !evidenceViewerError">
         <iframe
-          *ngIf="evidenceViewerMode === 'pdf' || evidenceViewerMode === 'iframe'"
+          *ngIf="(evidenceViewerMode === 'pdf' || evidenceViewerMode === 'iframe') && !evidenceViewerPdfMobileFallback"
           class="evidence-frame"
           [src]="evidenceViewerSafeUrl"
           title="Vista previa de evidencia">
         </iframe>
+
+        <div class="pdf-mobile-fallback" *ngIf="evidenceViewerMode === 'pdf' && evidenceViewerPdfMobileFallback">
+          <p>En celular, este PDF se abre mejor en una pestaña nueva.</p>
+          <button class="btn btn-primary" type="button" (click)="openEvidenceInNewTab()">
+            Abrir evidencia
+          </button>
+        </div>
 
         <img
           *ngIf="evidenceViewerMode === 'image'"
