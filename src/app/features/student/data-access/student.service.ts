@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Observable, catchError, map, of, throwError } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { API_ROUTES } from '../../../core/api.routes';
@@ -83,9 +83,60 @@ export class StudentService {
   }
 
   getDashboard(): Observable<StudentApiResponse<StudentDashboardData>> {
-    return this.http.get<StudentApiResponse<StudentDashboardData>>(
-      `${this.apiUrl}${API_ROUTES.student.dashboard}`,
-    );
+    return this.http
+      .get<StudentApiResponse<StudentDashboardData>>(`${this.apiUrl}${API_ROUTES.student.dashboard}`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error.status !== 400) {
+            return throwError(() => error);
+          }
+
+          // Fallback defensivo: algunos despliegues responden 400 en /student/dashboard.
+          // Armamos el dashboard a partir de assignments para no romper la pantalla.
+          return this.getAssignments({ page: 1, page_size: 200, status: 'PENDIENTE' }).pipe(
+            map((res) => {
+              const now = Date.now();
+              const pending_items = (res.data?.items || [])
+                .filter((item) => item.status === 'PENDIENTE')
+                .map((item) => ({
+                  course_id: item.course_id,
+                  course_name: item.course_name,
+                  milestone_id: item.milestone_id || item.id,
+                  milestone_title: item.milestone_title || 'Actividad pendiente',
+                  due_at: item.due_at,
+                  can_submit_until: item.due_at,
+                  status: item.status,
+                }));
+
+              const overdue_items = pending_items.filter(
+                (item) => !!item.due_at && new Date(item.due_at).getTime() < now,
+              );
+              const current_pending = pending_items.filter(
+                (item) => !item.due_at || new Date(item.due_at).getTime() >= now,
+              );
+
+              return {
+                data: {
+                  pending_total: current_pending.length,
+                  overdue_total: overdue_items.length,
+                  pending_items: current_pending,
+                  overdue_items,
+                },
+              };
+            }),
+            catchError(() =>
+              of({
+                data: {
+                  pending_total: 0,
+                  overdue_total: 0,
+                  pending_items: [],
+                  overdue_items: [],
+                },
+              }),
+            ),
+          );
+        }),
+      );
   }
 
   getNotifications(params?: {
