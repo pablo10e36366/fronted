@@ -21,6 +21,17 @@ export class StudentService {
 
   constructor(private http: HttpClient) {}
 
+  private shouldUseReadFallback(error: HttpErrorResponse): boolean {
+    // Mantener seguridad de sesión: no ocultar errores de auth/autorización.
+    if (error.status === 401 || error.status === 403) return false;
+    // Backend actual puede responder 400 o 500 por incompatibilidad de esquema.
+    return error.status === 400 || error.status >= 500;
+  }
+
+  private emptyListMeta(page = 1, page_size = 10) {
+    return { page, page_size, total: 0 };
+  }
+
   getCourses(params?: {
     page?: number;
     page_size?: number;
@@ -34,6 +45,16 @@ export class StudentService {
     return this.http.get<StudentApiResponse<StudentCoursesListData>>(
       `${this.apiUrl}${API_ROUTES.student.courses}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+        return of({
+          data: { items: [] },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
@@ -50,6 +71,16 @@ export class StudentService {
     return this.http.get<StudentApiResponse<StudentAvailableCoursesListData>>(
       `${this.apiUrl}${API_ROUTES.student.coursesAvailable}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+        return of({
+          data: { items: [] },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
@@ -79,6 +110,16 @@ export class StudentService {
     return this.http.get<StudentApiResponse<StudentAssignmentsListData>>(
       `${this.apiUrl}${API_ROUTES.student.assignments}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+        return of({
+          data: { items: [] },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
@@ -87,7 +128,7 @@ export class StudentService {
       .get<StudentApiResponse<StudentDashboardData>>(`${this.apiUrl}${API_ROUTES.student.dashboard}`)
       .pipe(
         catchError((error: HttpErrorResponse) => {
-          if (error.status !== 400) {
+          if (!this.shouldUseReadFallback(error)) {
             return throwError(() => error);
           }
 
@@ -150,6 +191,16 @@ export class StudentService {
     return this.http.get<StudentApiResponse<StudentNotificationsListData>>(
       `${this.apiUrl}${API_ROUTES.student.notifications}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+        return of({
+          data: { items: [] },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
