@@ -282,10 +282,7 @@ export class AdminNotificationsComponent implements OnInit {
           this.loading = false;
         },
         error: (err: unknown) => {
-          this.errorMessage =
-            (err as { error?: { message?: string }; message?: string })?.error?.message ||
-            (err as { message?: string })?.message ||
-            'No se pudieron cargar las solicitudes.';
+          this.errorMessage = this.toFriendlyErrorMessage(err, 'No se pudieron cargar las solicitudes.');
           this.loading = false;
         },
       });
@@ -310,13 +307,71 @@ export class AdminNotificationsComponent implements OnInit {
         this.loadRequests();
       },
       error: (err: unknown) => {
-        this.processingId = null;
-        this.errorMessage =
-          (err as { error?: { message?: string }; message?: string })?.error?.message ||
-          (err as { message?: string })?.message ||
-          'No se pudo procesar la solicitud.';
+        this.verifyResolutionAfterError(req.id, decision, err);
       },
     });
+  }
+
+  private verifyResolutionAfterError(
+    requestId: string,
+    decision: 'APPROVE' | 'REJECT',
+    originalError: unknown,
+  ): void {
+    const expectedStatus: RoleUpgradeRequestStatus =
+      decision === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+
+    this.adminService
+      .getRoleUpgradeRequests({
+        status: undefined,
+        page: 1,
+        pageSize: 200,
+      })
+      .subscribe({
+        next: (res) => {
+          this.processingId = null;
+          const latest = (res.items || []).find((item) => item.id === requestId);
+          const wasApplied = latest?.status === expectedStatus;
+
+          if (wasApplied) {
+            this.successMessage =
+              decision === 'APPROVE'
+                ? 'Solicitud aprobada. El usuario ahora es docente.'
+                : 'Solicitud rechazada correctamente.';
+            this.errorMessage = '';
+            this.loadRequests();
+            return;
+          }
+
+          this.errorMessage = this.toFriendlyErrorMessage(
+            originalError,
+            'No se pudo procesar la solicitud.',
+          );
+        },
+        error: () => {
+          this.processingId = null;
+          this.errorMessage = this.toFriendlyErrorMessage(
+            originalError,
+            'No se pudo procesar la solicitud.',
+          );
+        },
+      });
+  }
+
+  private toFriendlyErrorMessage(err: unknown, fallback: string): string {
+    const raw =
+      (err as { error?: { message?: string }; message?: string })?.error?.message ||
+      (err as { message?: string })?.message ||
+      '';
+
+    const message = String(raw || '').trim();
+    if (!message) return fallback;
+
+    const lower = message.toLowerCase();
+    if (lower.includes('http failure response for')) return fallback;
+    if (lower.includes('internal server error')) return fallback;
+    if (lower.includes('error interno del servidor')) return fallback;
+
+    return message;
   }
 
   statusLabel(status: RoleUpgradeRequestStatus): string {
