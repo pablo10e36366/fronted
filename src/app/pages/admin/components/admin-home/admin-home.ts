@@ -23,56 +23,12 @@ import {
         </div>
         <div class="kpi-card projects">
           <div class="icon">🚀</div>
-          <div class="value">{{ stats.kpis.activeProjects }}</div>
-          <div class="label">Proyectos Activos</div>
-        </div>
-        <div class="kpi-card review">
-          <div class="icon">👀</div>
-          <div class="value">{{ stats.kpis.inReview }}</div>
-          <div class="label">En Revisión</div>
-        </div>
-        <div class="kpi-card storage">
-          <div class="icon">💾</div>
-          <div class="value">{{ stats.kpis.storageUsed }}%</div>
-          <div class="label">Espacio Usado</div>
+          <div class="value">{{ activeCoursesCount }}</div>
+          <div class="label">Cursos Activos</div>
         </div>
       </div>
 
-      <div class="dashboard-content-grid" *ngIf="!loading">
-        <div class="chart-section">
-          <h3>Estado de Proyectos</h3>
-          <div class="simple-bar-chart">
-            <div class="bar-item">
-              <span class="label">Borrador</span>
-              <div class="bar-bg">
-                <div class="bar-fill" [style.width.%]="getBarWidth(stats.projectStats.draft)"></div>
-              </div>
-              <span class="count">{{ stats.projectStats.draft }}</span>
-            </div>
-            <div class="bar-item">
-              <span class="label">En Progreso</span>
-              <div class="bar-bg">
-                <div class="bar-fill in-progress" [style.width.%]="getBarWidth(stats.projectStats.inProgress)"></div>
-              </div>
-              <span class="count">{{ stats.projectStats.inProgress }}</span>
-            </div>
-            <div class="bar-item">
-              <span class="label">En Revisión</span>
-              <div class="bar-bg">
-                <div class="bar-fill in-review" [style.width.%]="getBarWidth(stats.projectStats.inReview || 0)"></div>
-              </div>
-              <span class="count">{{ stats.projectStats.inReview || 0 }}</span>
-            </div>
-            <div class="bar-item">
-              <span class="label">Completado</span>
-              <div class="bar-bg">
-                <div class="bar-fill completed" [style.width.%]="getBarWidth(stats.projectStats.completed)"></div>
-              </div>
-              <span class="count">{{ stats.projectStats.completed }}</span>
-            </div>
-          </div>
-        </div>
-
+      <div *ngIf="!loading">
         <div class="alerts-section">
           <h3>Alertas Rápidas</h3>
           <div class="empty-alerts" *ngIf="!stats.alerts.length">Sin alertas por ahora.</div>
@@ -118,7 +74,7 @@ import {
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.3rem;
     }
 
@@ -160,13 +116,6 @@ import {
       margin-top: 0.55rem;
     }
 
-    .dashboard-content-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1.5rem;
-    }
-
-    .chart-section,
     .alerts-section {
       background: var(--card-bg, #fff);
       padding: 1.5rem;
@@ -181,58 +130,6 @@ import {
       font-size: 1.7rem;
       font-weight: 800;
       letter-spacing: -0.01em;
-    }
-
-    .simple-bar-chart {
-      display: flex;
-      flex-direction: column;
-      gap: 1.05rem;
-    }
-
-    .bar-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .bar-item .label {
-      width: 115px;
-      font-size: 0.95rem;
-      color: var(--slate-700);
-      font-weight: 600;
-    }
-
-    .bar-bg {
-      flex: 1;
-      height: 11px;
-      background: var(--slate-200);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      background: #64748b;
-      border-radius: 999px;
-    }
-
-    .bar-fill.in-progress {
-      background: var(--primary-500);
-    }
-
-    .bar-fill.in-review {
-      background: #f59e0b;
-    }
-
-    .bar-fill.completed {
-      background: #22c55e;
-    }
-
-    .count {
-      min-width: 20px;
-      text-align: right;
-      font-weight: 700;
-      color: var(--slate-800);
     }
 
     .empty-alerts {
@@ -339,10 +236,6 @@ import {
 
     @media (max-width: 1400px) {
       .kpi-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .dashboard-content-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -359,6 +252,19 @@ export class AdminHomeComponent implements OnInit {
   errorMessage = '';
 
   constructor(private adminService: AdminService) {}
+
+  get activeCoursesCount(): number {
+    const kpiValue = Number(this.stats?.kpis?.activeProjects || 0);
+    if (Number.isFinite(kpiValue) && kpiValue > 0) return kpiValue;
+
+    const stats = this.stats?.projectStats;
+    const total =
+      Number(stats?.draft || 0) +
+      Number(stats?.inProgress || 0) +
+      Number(stats?.inReview || 0) +
+      Number(stats?.completed || 0);
+    return Number.isFinite(total) ? total : 0;
+  }
 
   ngOnInit(): void {
     this.loadDashboardStats();
@@ -411,12 +317,6 @@ export class AdminHomeComponent implements OnInit {
       return rawMessage;
     }
     return 'No se pudieron cargar las métricas del dashboard.';
-  }
-
-  getBarWidth(count: number): number {
-    const totals = this.stats.projectStats;
-    const total = (totals.draft || 0) + (totals.inProgress || 0) + (totals.inReview || 0) + (totals.completed || 0);
-    return total > 0 ? (count / total) * 100 : 0;
   }
 
   getAlertIcon(type: AdminDashboardAlert['type']): string {
