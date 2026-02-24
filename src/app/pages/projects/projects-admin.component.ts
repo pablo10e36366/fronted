@@ -148,7 +148,8 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
           );
         }),
       )
-      .subscribe((projects: ProjectDto[]) => {
+      .subscribe((projectsResponse: ProjectDto[] | unknown) => {
+        const projects = this.extractProjects(projectsResponse);
         this.projects = projects.map((project) => this.enrichProject(project));
         this.applyFilters();
         this.updateKPIs();
@@ -169,15 +170,46 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   }
 
   private normalizeStatus(status: string | null | undefined): ProjectStatusType {
-    const normalized = String(status || 'draft').toLowerCase();
+    const normalized = this.normalizeStatusToken(status);
+
     if (
       normalized === 'draft' ||
+      normalized === 'borrador' ||
+      normalized === 'pending' ||
+      normalized === 'pendiente'
+    ) return 'draft';
+
+    if (
       normalized === 'in_progress' ||
+      normalized === 'inprogress' ||
+      normalized === 'en_progreso' ||
+      normalized === 'active' ||
+      normalized === 'activo' ||
+      normalized === 'published' ||
+      normalized === 'publicado'
+    ) return 'in_progress';
+
+    if (
       normalized === 'in_review' ||
-      normalized === 'completed'
-    ) {
-      return normalized;
-    }
+      normalized === 'inreview' ||
+      normalized === 'review' ||
+      normalized === 'en_revision' ||
+      normalized === 'revision' ||
+      normalized === 'pending_review' ||
+      normalized === 'pendingreview'
+    ) return 'in_review';
+
+    if (
+      normalized === 'completed' ||
+      normalized === 'complete' ||
+      normalized === 'completado' ||
+      normalized === 'done' ||
+      normalized === 'finalizado' ||
+      normalized === 'closed' ||
+      normalized === 'aprobado' ||
+      normalized === 'approved'
+    ) return 'completed';
+
     return 'draft';
   }
 
@@ -186,7 +218,8 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     const sub = this.projectsService.getAllProjects().subscribe({
-      next: (projects) => {
+      next: (projectsResponse) => {
+        const projects = this.extractProjects(projectsResponse);
         this.projects = projects.map((project) => this.enrichProject(project));
         this.applyFilters();
         this.updateKPIs();
@@ -230,9 +263,10 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
   }
 
   updateKPIs(): void {
-    this.kpiTotal = this.projects.length;
-    this.kpiReview = this.projects.filter((project) => project.uiStatus === 'in_review').length;
-    this.kpiCompleted = this.projects.filter((project) => project.uiStatus === 'completed').length;
+    const source = this.projects.length ? this.projects : this.filteredProjects;
+    this.kpiTotal = source.length;
+    this.kpiReview = source.filter((project) => project.uiStatus === 'in_review').length;
+    this.kpiCompleted = source.filter((project) => project.uiStatus === 'completed').length;
     this.kpiScore = this.kpiTotal > 0 ? Math.round((this.kpiCompleted / this.kpiTotal) * 100) : 0;
   }
 
@@ -847,5 +881,40 @@ export class ProjectsAdminComponent implements OnInit, OnDestroy {
     } catch {
       // ignore storage write errors
     }
+  }
+
+  private normalizeStatusToken(value: string | null | undefined): string {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s-]+/g, '_');
+  }
+
+  private extractProjects(input: unknown): ProjectDto[] {
+    if (Array.isArray(input)) return input as ProjectDto[];
+
+    if (!input || typeof input !== 'object') return [];
+    const payload = input as {
+      items?: unknown;
+      data?: unknown;
+      projects?: unknown;
+      rows?: unknown;
+    };
+
+    if (Array.isArray(payload.items)) return payload.items as ProjectDto[];
+    if (Array.isArray(payload.projects)) return payload.projects as ProjectDto[];
+    if (Array.isArray(payload.rows)) return payload.rows as ProjectDto[];
+    if (Array.isArray(payload.data)) return payload.data as ProjectDto[];
+
+    if (payload.data && typeof payload.data === 'object') {
+      const nested = payload.data as { items?: unknown; projects?: unknown; rows?: unknown };
+      if (Array.isArray(nested.items)) return nested.items as ProjectDto[];
+      if (Array.isArray(nested.projects)) return nested.projects as ProjectDto[];
+      if (Array.isArray(nested.rows)) return nested.rows as ProjectDto[];
+    }
+
+    return [];
   }
 }
