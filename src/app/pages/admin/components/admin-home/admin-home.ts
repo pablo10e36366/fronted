@@ -377,11 +377,40 @@ export class AdminHomeComponent implements OnInit {
         this.loading = false;
       },
       error: (err: unknown) => {
-        this.errorMessage =
-          (err as { message?: string })?.message || 'No se pudieron cargar las métricas del dashboard.';
+        if (this.shouldSuppressReadError(err)) {
+          this.stats = {
+            kpis: { activeUsers: 0, activeProjects: 0, inReview: 0, storageUsed: 0 },
+            projectStats: { draft: 0, inProgress: 0, inReview: 0, completed: 0 },
+            alerts: [],
+          };
+          this.errorMessage = '';
+          this.loading = false;
+          return;
+        }
+
+        this.errorMessage = this.toDashboardErrorMessage(err);
         this.loading = false;
       },
     });
+  }
+
+  private shouldSuppressReadError(err: unknown): boolean {
+    const status = (err as { status?: unknown })?.status;
+    if (typeof status !== 'number') return false;
+    if (status === 401 || status === 403) return false;
+    return status === 400 || status >= 500;
+  }
+
+  private toDashboardErrorMessage(err: unknown): string {
+    const rawMessage = (err as { message?: unknown })?.message;
+    if (typeof rawMessage === 'string' && rawMessage.trim()) {
+      const lower = rawMessage.toLowerCase();
+      if (lower.includes('http failure response for')) {
+        return 'No se pudieron cargar las métricas del dashboard.';
+      }
+      return rawMessage;
+    }
+    return 'No se pudieron cargar las métricas del dashboard.';
   }
 
   getBarWidth(count: number): number {
