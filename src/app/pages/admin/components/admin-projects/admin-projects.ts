@@ -60,6 +60,15 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
                     (click)="deleteCourse(p)">
                     {{ actionLoadingId === p.id ? 'Procesando...' : 'Eliminar curso' }}
                   </button>
+
+                  <button
+                    *ngIf="mode === 'archived'"
+                    class="btn-sm btn-outline"
+                    [disabled]="actionLoadingId === p.id"
+                    (click)="unarchiveProject(p)">
+                    {{ actionLoadingId === p.id ? 'Procesando...' : 'Desarchivar' }}
+                  </button>
+
                   <button
                     *ngIf="mode === 'all'"
                     class="btn-sm btn-outline danger"
@@ -110,6 +119,8 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
     .controls { display: flex; gap: 0.5rem; }
     .btn-sm { font-size: 0.75rem; padding: 0.3rem 0.8rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; }
     .btn-sm:disabled { opacity: 0.65; cursor: not-allowed; }
+    .btn-sm.btn-outline { color: #0f172a; border-color: #94a3b8; }
+    .btn-sm.btn-outline:hover:not(:disabled) { background: #f8fafc; }
     .btn-sm.danger { color: #991b1b; border-color: #fca5a5; }
     .btn-sm.danger:hover:not(:disabled) { background: #fef2f2; }
     .empty-state { text-align: center; color: #64748b; }
@@ -169,7 +180,7 @@ export class AdminProjectsComponent implements OnInit {
   deleteCourse(project: ProjectDto): void {
     if (!project?.id) return;
     const confirmed = window.confirm(
-      `¿Eliminar curso "${project.title}"?\nEsta accion no se puede deshacer.`,
+      `Eliminar curso "${project.title}"?\nEsta accion no se puede deshacer.`,
     );
     if (!confirmed) return;
 
@@ -181,7 +192,7 @@ export class AdminProjectsComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.error('Error deleting course:', err);
-        window.alert('Error al eliminar curso.');
+        window.alert(this.getErrorMessage(err, 'Error al eliminar curso.'));
         this.actionLoadingId = null;
       },
     });
@@ -190,7 +201,7 @@ export class AdminProjectsComponent implements OnInit {
   archiveProject(project: ProjectDto): void {
     if (!project?.id) return;
     const reason = window.prompt(
-      `¿Archivar curso "${project.title}"? Ingresa la razon:`,
+      `Archivar curso "${project.title}". Ingresa la razon:`,
       'Curso finalizado',
     );
     if (!reason || !reason.trim()) return;
@@ -203,7 +214,29 @@ export class AdminProjectsComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.error('Error archiving course:', err);
-        window.alert('Error al archivar curso');
+        window.alert(this.getErrorMessage(err, 'Error al archivar curso'));
+        this.actionLoadingId = null;
+      },
+    });
+  }
+
+  unarchiveProject(project: ProjectDto): void {
+    if (!project?.id) return;
+    const reason = window.prompt(
+      `Desarchivar curso "${project.title}". Ingresa la razon:`,
+      'Reactivado por administrador',
+    );
+    if (!reason || !reason.trim()) return;
+
+    this.actionLoadingId = project.id;
+    this.projectService.unarchiveProject(project.id, reason.trim()).subscribe({
+      next: () => {
+        window.alert('Curso desarchivado exitosamente');
+        this.loadProjects();
+      },
+      error: (err: unknown) => {
+        console.error('Error unarchiving course:', err);
+        window.alert(this.getErrorMessage(err, 'Error al desarchivar curso'));
         this.actionLoadingId = null;
       },
     });
@@ -263,5 +296,14 @@ export class AdminProjectsComponent implements OnInit {
 
   trackByProjectId(_index: number, project: ProjectDto): string {
     return project.id;
+  }
+
+  private getErrorMessage(err: unknown, fallback: string): string {
+    if (typeof err === 'string' && err.trim()) return err;
+    if (err && typeof err === 'object' && 'message' in err) {
+      const message = (err as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+    return fallback;
   }
 }

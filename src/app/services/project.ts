@@ -9,8 +9,36 @@ import { NotificationService } from './notification.service';
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
   archiveProject(id: string, reason: string): Observable<ProjectDto> {
-    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/archive`, { reason })
-      .pipe(catchError(this.handleError));
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/archive`, { reason }).pipe(
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/archive`, { reason }),
+      ),
+      catchError(() =>
+        this.tryForceStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED'], reason),
+      ),
+      catchError(() =>
+        this.tryChangeStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED']),
+      ),
+      catchError(this.handleError),
+    );
+  }
+
+  unarchiveProject(id: string, reason: string): Observable<ProjectDto> {
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/unarchive`, { reason }).pipe(
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/unarchive`, { reason }),
+      ),
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/restore`, { reason }),
+      ),
+      catchError(() =>
+        this.tryForceStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'], reason),
+      ),
+      catchError(() =>
+        this.tryChangeStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS']),
+      ),
+      catchError(this.handleError),
+    );
   }
 
   forceStatusChange(id: string, forceStatusValue: string, forceStatusReason: string): Observable<ProjectDto> {
@@ -44,6 +72,42 @@ export class ProjectService {
     this.notificationService.showError(errorMessage);
     return throwError(() => errorMessage);
   };
+
+  private tryForceStatusVariants(
+    id: string,
+    statusVariants: string[],
+    reason: string,
+    index = 0,
+  ): Observable<ProjectDto> {
+    if (index >= statusVariants.length) {
+      return throwError(() => new Error('No se pudo aplicar force-status'));
+    }
+
+    const status = statusVariants[index];
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/force-status`, {
+      status,
+      reason,
+    }).pipe(
+      catchError(() => this.tryForceStatusVariants(id, statusVariants, reason, index + 1)),
+    );
+  }
+
+  private tryChangeStatusVariants(
+    id: string,
+    statusVariants: string[],
+    index = 0,
+  ): Observable<ProjectDto> {
+    if (index >= statusVariants.length) {
+      return throwError(() => new Error('No se pudo aplicar cambio de estado'));
+    }
+
+    const status = statusVariants[index];
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/status`, {
+      status,
+    }).pipe(
+      catchError(() => this.tryChangeStatusVariants(id, statusVariants, index + 1)),
+    );
+  }
 
   getMyProjects(): Observable<ProjectDto[]> {
     return this.http.get<ProjectDto[]>(`${this.apiUrl}${API_ROUTES.projects.base}`)
