@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Observable, catchError, of, throwError } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { API_ROUTES } from '../../../core/api.routes';
@@ -24,12 +24,37 @@ export class TeacherService {
 
   constructor(private http: HttpClient) {}
 
+  private shouldUseReadFallback(error: HttpErrorResponse): boolean {
+    if (error.status === 401 || error.status === 403) return false;
+    return error.status === 400 || error.status >= 500;
+  }
+
   getBadges(): Observable<TeacherApiResponse<TeacherBadges>> {
     return this.http.get<TeacherApiResponse<TeacherBadges>>(`${this.apiUrl}${API_ROUTES.teacher.badges}`);
   }
 
   getDashboard(): Observable<TeacherApiResponse<TeacherDashboardData>> {
-    return this.http.get<TeacherApiResponse<TeacherDashboardData>>(`${this.apiUrl}${API_ROUTES.teacher.dashboard}`);
+    return this.http
+      .get<TeacherApiResponse<TeacherDashboardData>>(`${this.apiUrl}${API_ROUTES.teacher.dashboard}`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (!this.shouldUseReadFallback(error)) {
+            return throwError(() => error);
+          }
+
+          return of({
+            data: {
+              summary: {
+                pending_submissions: 0,
+                unanswered_threads: 0,
+                overdue_items: 0,
+              },
+              overdue_items: [],
+              today_items: [],
+            },
+          });
+        }),
+      );
   }
 
   getNotifications(params?: {
