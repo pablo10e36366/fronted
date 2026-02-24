@@ -115,6 +115,18 @@ import { AdminUiPreferencesService } from '../../core/data-access/admin-ui-prefe
               </svg>
               Notificaciones
             </a>
+            <a
+              routerLink="/admin/archived"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="nav-item">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <rect x="1" y="3" width="22" height="5"></rect>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+              Archivados
+            </a>
           </div>
 
           <div class="nav-section">

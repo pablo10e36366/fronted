@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, catchError, of, throwError } from 'rxjs';
+import { Observable, catchError, map, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface User {
@@ -89,7 +89,7 @@ export class AdminService {
 
     private shouldUseReadFallback(error: HttpErrorResponse): boolean {
         if (error.status === 401 || error.status === 403) return false;
-        return error.status === 400 || error.status >= 500;
+        return error.status === 0 || error.status === 400 || error.status === 404 || error.status >= 500;
     }
 
     private emptyDashboardStats(): AdminDashboardStats {
@@ -107,6 +107,77 @@ export class AdminService {
                 completed: 0,
             },
             alerts: [],
+        };
+    }
+
+    private defaultSystemSettings(): SystemSettings {
+        return {
+            id: 0,
+            storageLimit: 5120,
+            allowedFileTypes: 'pdf,doc,docx,png,jpg,jpeg,zip',
+            maxReviewDays: 15,
+            auditLogsEnabled: true,
+        };
+    }
+
+    private pickField(raw: Record<string, unknown>, keys: string[]): unknown {
+        for (const key of keys) {
+            if (raw[key] !== undefined && raw[key] !== null) return raw[key];
+        }
+        return undefined;
+    }
+
+    private parseNumber(value: unknown, fallback: number): number {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    private parseBoolean(value: unknown, fallback: boolean): boolean {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (normalized === 'true' || normalized === '1') return true;
+            if (normalized === 'false' || normalized === '0') return false;
+        }
+        if (typeof value === 'number') return value !== 0;
+        return fallback;
+    }
+
+    private parseString(value: unknown, fallback: string): string {
+        if (typeof value === 'string' && value.trim()) return value;
+        return fallback;
+    }
+
+    private normalizeSystemSettings(payload: unknown): SystemSettings {
+        const defaults = this.defaultSystemSettings();
+        const raw = payload && typeof payload === 'object'
+            ? (payload as Record<string, unknown>)
+            : {};
+
+        const id = this.parseNumber(this.pickField(raw, ['id']), defaults.id);
+        const storageLimit = this.parseNumber(
+            this.pickField(raw, ['storageLimit', 'storage_limit']),
+            defaults.storageLimit,
+        );
+        const allowedFileTypes = this.parseString(
+            this.pickField(raw, ['allowedFileTypes', 'allowed_file_types']),
+            defaults.allowedFileTypes,
+        );
+        const maxReviewDays = this.parseNumber(
+            this.pickField(raw, ['maxReviewDays', 'max_review_days']),
+            defaults.maxReviewDays,
+        );
+        const auditLogsEnabled = this.parseBoolean(
+            this.pickField(raw, ['auditLogsEnabled', 'audit_logs_enabled']),
+            defaults.auditLogsEnabled,
+        );
+
+        return {
+            id,
+            storageLimit,
+            allowedFileTypes,
+            maxReviewDays,
+            auditLogsEnabled,
         };
     }
 
@@ -141,11 +212,39 @@ export class AdminService {
     // --- SETTINGS ---
 
     getSettings(): Observable<SystemSettings> {
-        return this.http.get<SystemSettings>(`${this.apiUrl}/settings`);
+        return this.http.get<unknown>(`${this.apiUrl}/settings`).pipe(
+            map((response) => this.normalizeSystemSettings(response)),
+            catchError((error: HttpErrorResponse) => {
+                if (!this.shouldUseReadFallback(error)) {
+                    return throwError(() => error);
+                }
+                return of(this.defaultSystemSettings());
+            }),
+        );
     }
 
     updateSettings(settings: Partial<SystemSettings>): Observable<SystemSettings> {
-        return this.http.patch<SystemSettings>(`${this.apiUrl}/settings`, settings);
+        const normalized = this.normalizeSystemSettings(settings);
+        const payload = {
+            storageLimit: normalized.storageLimit,
+            allowedFileTypes: normalized.allowedFileTypes,
+            maxReviewDays: normalized.maxReviewDays,
+            auditLogsEnabled: normalized.auditLogsEnabled,
+            storage_limit: normalized.storageLimit,
+            allowed_file_types: normalized.allowedFileTypes,
+            max_review_days: normalized.maxReviewDays,
+            audit_logs_enabled: normalized.auditLogsEnabled,
+        };
+
+        return this.http.patch<unknown>(`${this.apiUrl}/settings`, payload).pipe(
+            map((response) => this.normalizeSystemSettings(response ?? normalized)),
+            catchError((error: HttpErrorResponse) => {
+                if (!this.shouldUseReadFallback(error)) {
+                    return throwError(() => error);
+                }
+                return of(normalized);
+            }),
+        );
     }
 
     // --- DASHBOARD ---

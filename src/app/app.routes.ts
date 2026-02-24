@@ -5,6 +5,7 @@ import { RegisterVerifyComponent } from './pages/register-verify/register-verify
 import { ProjectsComponent } from './pages/projects/projects';
 import { AdminComponent } from './pages/admin/admin';
 import { AdminNotificationsPageComponent } from './pages/admin/admin-notifications-page';
+import { AdminArchivedPageComponent } from './pages/admin/admin-archived-page';
 import { RepositoryComponent } from './pages/repository/repository';
 import { EvidenceDetailComponent } from './pages/evidence-detail/evidence-detail';
 import { FoldersComponent } from './pages/folders/folders';
@@ -134,6 +135,12 @@ export const routes: Routes = [
       {
         path: 'admin/notifications',
         component: AdminNotificationsPageComponent,
+        canActivate: [roleGuard],
+        data: { expectedRole: 'admin' }
+      },
+      {
+        path: 'admin/archived',
+        component: AdminArchivedPageComponent,
         canActivate: [roleGuard],
         data: { expectedRole: 'admin' }
       },

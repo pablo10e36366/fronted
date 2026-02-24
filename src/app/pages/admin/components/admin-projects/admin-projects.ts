@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { ProjectService } from '../../../../core/data-access/project.service';
@@ -14,15 +14,14 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
   template: `
     <div class="admin-projects">
       <div class="toolbar">
-        <h2>Gestion de Cursos (Control)</h2>
-        <div class="filters">
+        <h2>{{ title }}</h2>
+        <div class="filters" *ngIf="mode === 'all'">
           <select [(ngModel)]="selectedStatus" (change)="applyStatusFilter()">
             <option value="ALL">Todos los estados</option>
             <option value="draft">Borrador</option>
             <option value="in_progress">En progreso</option>
             <option value="in_review">En revision</option>
             <option value="completed">Completado</option>
-            <option value="archived">Archivado</option>
           </select>
         </div>
       </div>
@@ -62,6 +61,7 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
                     {{ actionLoadingId === p.id ? 'Procesando...' : 'Eliminar curso' }}
                   </button>
                   <button
+                    *ngIf="mode === 'all'"
                     class="btn-sm btn-outline danger"
                     [disabled]="actionLoadingId === p.id"
                     (click)="archiveProject(p)">
@@ -116,6 +116,9 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
   `],
 })
 export class AdminProjectsComponent implements OnInit {
+  @Input() mode: 'all' | 'archived' = 'all';
+  @Input() title = 'Gestion de Cursos (Control)';
+
   projects: ProjectDto[] = [];
   filteredProjects: ProjectDto[] = [];
   selectedStatus: StatusFilter = 'ALL';
@@ -125,6 +128,9 @@ export class AdminProjectsComponent implements OnInit {
   constructor(private projectService: ProjectService) {}
 
   ngOnInit(): void {
+    if (this.mode === 'archived') {
+      this.selectedStatus = 'archived';
+    }
     this.loadProjects();
   }
 
@@ -146,12 +152,16 @@ export class AdminProjectsComponent implements OnInit {
   }
 
   applyStatusFilter(): void {
+    const sourceProjects = this.mode === 'archived'
+      ? this.projects.filter((project) => this.normalizeStatus(project.status) === 'archived')
+      : this.projects.filter((project) => this.normalizeStatus(project.status) !== 'archived');
+
     if (this.selectedStatus === 'ALL') {
-      this.filteredProjects = [...this.projects];
+      this.filteredProjects = [...sourceProjects];
       return;
     }
 
-    this.filteredProjects = this.projects.filter(
+    this.filteredProjects = sourceProjects.filter(
       (project) => this.normalizeStatus(project.status) === this.selectedStatus,
     );
   }
