@@ -56,10 +56,10 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
               <td>
                 <div class="controls">
                   <button
-                    class="btn-sm btn-outline"
+                    class="btn-sm btn-outline danger"
                     [disabled]="actionLoadingId === p.id"
-                    (click)="forceStatus(p)">
-                    {{ actionLoadingId === p.id ? 'Procesando...' : 'Forzar estado' }}
+                    (click)="deleteCourse(p)">
+                    {{ actionLoadingId === p.id ? 'Procesando...' : 'Eliminar curso' }}
                   </button>
                   <button
                     class="btn-sm btn-outline danger"
@@ -156,64 +156,22 @@ export class AdminProjectsComponent implements OnInit {
     );
   }
 
-  forceStatus(project: ProjectDto): void {
+  deleteCourse(project: ProjectDto): void {
     if (!project?.id) return;
+    const confirmed = window.confirm(
+      `¿Eliminar curso "${project.title}"?\nEsta accion no se puede deshacer.`,
+    );
+    if (!confirmed) return;
+
     this.actionLoadingId = project.id;
-
-    this.projectService.getProjectTransitions(project.id).subscribe({
-      next: (data) => {
-        const available = Array.isArray(data?.availableStates) ? data.availableStates : [];
-        this.promptAndForceStatus(project, available);
-      },
-      error: () => {
-        this.promptAndForceStatus(project, ['draft', 'in_progress', 'in_review', 'completed']);
-      },
-    });
-  }
-
-  private promptAndForceStatus(project: ProjectDto, optionsRaw: string[]): void {
-    const options = Array.from(
-      new Set(
-        (optionsRaw || [])
-          .map((option) => this.normalizeStatus(option))
-          .filter(Boolean),
-      ),
-    );
-
-    const fallbackOptions: StatusFilter[] = ['draft', 'in_progress', 'in_review', 'completed'];
-    const validOptions = options.length ? options : fallbackOptions;
-    const suggested = validOptions[0];
-
-    const input = window.prompt(
-      `Estados disponibles: ${validOptions.join(', ')}\nEscribe el nuevo estado:`,
-      suggested,
-    );
-    if (!input) {
-      this.actionLoadingId = null;
-      return;
-    }
-
-    const normalizedInput = this.normalizeStatus(input);
-    if (!validOptions.includes(normalizedInput)) {
-      window.alert('Estado invalido. Usa uno de los estados disponibles.');
-      this.actionLoadingId = null;
-      return;
-    }
-
-    const reason = window.prompt('Razon del cambio forzado:', 'Cambio administrativo');
-    if (!reason || !reason.trim()) {
-      this.actionLoadingId = null;
-      return;
-    }
-
-    this.projectService.forceStatusChange(project.id, normalizedInput, reason.trim()).subscribe({
+    this.projectService.deleteProject(project.id).subscribe({
       next: () => {
-        window.alert(`Estado cambiado a: ${this.getStatusLabel(normalizedInput)}`);
+        window.alert('Curso eliminado correctamente.');
         this.loadProjects();
       },
       error: (err: unknown) => {
-        console.error('Error forcing status:', err);
-        window.alert('Error al forzar estado del curso.');
+        console.error('Error deleting course:', err);
+        window.alert('Error al eliminar curso.');
         this.actionLoadingId = null;
       },
     });
