@@ -167,10 +167,25 @@ export class StudentActivitiesComponent implements OnInit, OnDestroy {
     this.submitSuccess = '';
 
     let assignmentMarkedAsDelivered = false;
+    let successfulParts = 0;
+    let firstErrorMessage = '';
 
-    try {
-      if (this.submissionFile) {
-        await firstValueFrom(
+    const submitPart = async (request: Promise<unknown>): Promise<boolean> => {
+      try {
+        await request;
+        successfulParts += 1;
+        return true;
+      } catch (err: any) {
+        if (!firstErrorMessage) {
+          firstErrorMessage = this.getErrorMessage(err, 'No se pudo enviar la entrega');
+        }
+        return false;
+      }
+    };
+
+    if (this.submissionFile) {
+      const fileSaved = await submitPart(
+        firstValueFrom(
           this.evidenceApiService.createFile({
             projectId: this.courseId,
             milestoneId: assignment.milestone_id,
@@ -178,38 +193,54 @@ export class StudentActivitiesComponent implements OnInit, OnDestroy {
             name: this.submissionFile.name,
             file: this.submissionFile,
           }),
-        );
+        ),
+      );
+      if (fileSaved) {
         assignmentMarkedAsDelivered = true;
       }
+    }
 
-      if (text) {
-        await firstValueFrom(
+    if (text) {
+      const textSaved = await submitPart(
+        firstValueFrom(
           this.evidenceApiService.createEvidence(
             this.courseId,
             this.buildTextEvidencePayload(assignment, text, assignmentMarkedAsDelivered),
           ),
-        );
+        ),
+      );
+      if (textSaved) {
         assignmentMarkedAsDelivered = true;
       }
+    }
 
-      for (const link of this.links) {
-        await firstValueFrom(
+    for (const link of this.links) {
+      const linkSaved = await submitPart(
+        firstValueFrom(
           this.evidenceApiService.createEvidence(
             this.courseId,
             this.buildLinkEvidencePayload(assignment, link, assignmentMarkedAsDelivered),
           ),
-        );
+        ),
+      );
+      if (linkSaved) {
         assignmentMarkedAsDelivered = true;
       }
-
-      this.submitSuccess = 'Entrega enviada correctamente.';
-      this.clearSubmissionDraft(false);
-      this.load();
-    } catch (err: any) {
-      this.submitError = this.getErrorMessage(err, 'No se pudo enviar la entrega');
-    } finally {
-      this.submitting = false;
     }
+
+    this.submitting = false;
+
+    if (successfulParts === 0) {
+      this.submitError = firstErrorMessage || 'No se pudo enviar la entrega';
+      return;
+    }
+
+    this.submitSuccess =
+      firstErrorMessage
+        ? 'Entrega registrada. Algunos elementos adicionales no se pudieron adjuntar.'
+        : 'Entrega enviada correctamente.';
+    this.clearSubmissionDraft(false);
+    this.load();
   }
 
   isPending(item: StudentAssignmentListItem | null): boolean {
