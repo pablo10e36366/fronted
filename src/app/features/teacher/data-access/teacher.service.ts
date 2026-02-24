@@ -145,6 +145,20 @@ export class TeacherService {
     return this.http.get<TeacherApiResponse<TeacherSubmissionsListData>>(
       `${this.apiUrl}${API_ROUTES.teacher.submissions}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+
+        return of({
+          data: {
+            items: [],
+            next_pending_submission_id: null,
+          },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
