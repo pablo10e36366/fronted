@@ -9,6 +9,9 @@ export interface ProjectDto {
   title: string;
   description?: string | null;
   status?: ProjectStatus | string | null;
+  isArchived?: boolean | null;
+  archivedAt?: string | null;
+  archivedBy?: number | null;
   createdAt?: string;
   updatedAt?: string;
   fileUrl?: string | null;

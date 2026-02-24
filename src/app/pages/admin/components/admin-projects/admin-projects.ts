@@ -50,7 +50,7 @@ type StatusFilter = 'ALL' | 'draft' | 'in_progress' | 'in_review' | 'completed' 
                 </div>
               </td>
               <td>
-                <span class="badge" [class]="getStatusClass(p.status)">{{ getStatusLabel(p.status) }}</span>
+                <span class="badge" [class]="getStatusClass(p)">{{ getStatusLabel(p) }}</span>
               </td>
               <td>
                 <div class="controls">
@@ -164,8 +164,8 @@ export class AdminProjectsComponent implements OnInit {
 
   applyStatusFilter(): void {
     const sourceProjects = this.mode === 'archived'
-      ? this.projects.filter((project) => this.normalizeStatus(project.status) === 'archived')
-      : this.projects.filter((project) => this.normalizeStatus(project.status) !== 'archived');
+      ? this.projects.filter((project) => this.isArchivedProject(project))
+      : this.projects.filter((project) => !this.isArchivedProject(project));
 
     if (this.selectedStatus === 'ALL') {
       this.filteredProjects = [...sourceProjects];
@@ -173,7 +173,7 @@ export class AdminProjectsComponent implements OnInit {
     }
 
     this.filteredProjects = sourceProjects.filter(
-      (project) => this.normalizeStatus(project.status) === this.selectedStatus,
+      (project) => this.normalizeStatus(project) === this.selectedStatus,
     );
   }
 
@@ -258,22 +258,30 @@ export class AdminProjectsComponent implements OnInit {
     return '';
   }
 
-  getStatusClass(status: string | null | undefined): string {
-    return this.normalizeStatus(status);
+  getStatusClass(project: ProjectDto): string {
+    return this.normalizeStatus(project);
   }
 
-  getStatusLabel(status: string | null | undefined): string {
-    const normalized = this.normalizeStatus(status);
+  getStatusLabel(project: ProjectDto): string {
+    const normalized = this.normalizeStatus(project);
     if (normalized === 'draft') return 'Borrador';
     if (normalized === 'in_progress') return 'En progreso';
     if (normalized === 'in_review') return 'En revision';
     if (normalized === 'completed') return 'Completado';
     if (normalized === 'archived') return 'Archivado';
-    return String(status || 'N/A');
+    return String(project.status || 'N/A');
   }
 
-  private normalizeStatus(status: string | null | undefined): StatusFilter {
-    const raw = String(status || '')
+  private isArchivedProject(project: ProjectDto): boolean {
+    if (project?.isArchived === true) return true;
+    const statusRaw = String(project?.status || '').trim().toLowerCase();
+    return statusRaw === 'archived' || statusRaw === 'archivado' || statusRaw === 'closed';
+  }
+
+  private normalizeStatus(project: ProjectDto): StatusFilter {
+    if (this.isArchivedProject(project)) return 'archived';
+
+    const raw = String(project?.status || '')
       .trim()
       .toLowerCase()
       .normalize('NFD')

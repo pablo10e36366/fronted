@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
+
 import { environment } from '../../environments/environment';
 import { API_ROUTES } from '../core/api.routes';
 import { ProjectDto, RepositoryViewDto } from '../core/models/project.models';
@@ -8,35 +9,36 @@ import { NotificationService } from './notification.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
+  private apiUrl = environment.apiUrl;
+
+  constructor(
+    private http: HttpClient,
+    private notificationService: NotificationService,
+  ) {}
+
   archiveProject(id: string, reason: string): Observable<ProjectDto> {
     return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/archive`, { reason }).pipe(
-      catchError(() =>
-        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/archive`, { reason }),
-      ),
-      catchError(() =>
-        this.tryForceStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED'], reason),
-      ),
-      catchError(() =>
-        this.tryChangeStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED']),
-      ),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/archive`, { reason })),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}/admin/projects/${id}/archive`, { reason })),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}/admin/courses/${id}/archive`, { reason })),
+      catchError(() => this.archiveViaLegacyEndpoint(id, reason)),
+      catchError(() => this.forceStatusViaLegacyEndpoint(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED'], reason)),
+      catchError(() => this.tryForceStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED'], reason)),
+      catchError(() => this.tryChangeStatusVariants(id, ['archived', 'ARCHIVED', 'closed', 'CLOSED'])),
       catchError(this.handleError),
     );
   }
 
   unarchiveProject(id: string, reason: string): Observable<ProjectDto> {
     return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/unarchive`, { reason }).pipe(
-      catchError(() =>
-        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/unarchive`, { reason }),
-      ),
-      catchError(() =>
-        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/restore`, { reason }),
-      ),
-      catchError(() =>
-        this.tryForceStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'], reason),
-      ),
-      catchError(() =>
-        this.tryChangeStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS']),
-      ),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/unarchive`, { reason })),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/restore`, { reason })),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}/admin/projects/${id}/unarchive`, { reason })),
+      catchError(() => this.http.patch<ProjectDto>(`${this.apiUrl}/admin/courses/${id}/unarchive`, { reason })),
+      catchError(() => this.unarchiveViaLegacyEndpoint(id, reason)),
+      catchError(() => this.forceStatusViaLegacyEndpoint(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'], reason)),
+      catchError(() => this.tryForceStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'], reason)),
+      catchError(() => this.tryChangeStatusVariants(id, ['draft', 'DRAFT', 'in_progress', 'IN_PROGRESS'])),
       catchError(this.handleError),
     );
   }
@@ -44,43 +46,56 @@ export class ProjectService {
   forceStatusChange(id: string, forceStatusValue: string, forceStatusReason: string): Observable<ProjectDto> {
     return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/${id}/force-status`, {
       status: forceStatusValue,
-      reason: forceStatusReason
+      reason: forceStatusReason,
     }).pipe(catchError(this.handleError));
   }
 
   getProjectTransitions(id: string): Observable<{ currentStatus: string; availableStates: string[] }> {
     return this.http.get<{ currentStatus: string; availableStates: string[] }>(
-      `${this.apiUrl}${API_ROUTES.projects.base}/${id}/transitions`
+      `${this.apiUrl}${API_ROUTES.projects.base}/${id}/transitions`,
     ).pipe(catchError(this.handleError));
   }
-  private apiUrl = environment.apiUrl;
-
-  constructor(
-    private http: HttpClient,
-    private notificationService: NotificationService
-  ) { }
 
   /**
    * Centralized error handler - receives string errors from interceptor
    */
-  private handleError = (error: string | Error): Observable<never> => {
-    const errorMessage = typeof error === 'string'
-      ? error
-      : error.message || 'Ocurrió un error inesperado';
-
+  private handleError = (error: unknown): Observable<never> => {
+    const errorMessage = this.extractErrorMessage(error);
     console.error('Error en ProjectService:', errorMessage);
     this.notificationService.showError(errorMessage);
     return throwError(() => errorMessage);
   };
+
+  private extractErrorMessage(error: unknown): string {
+    if (typeof error === 'string' && error.trim()) return error;
+
+    if (error instanceof HttpErrorResponse) {
+      const payload = error.error as unknown;
+      if (typeof payload === 'string' && payload.trim()) return payload;
+
+      if (payload && typeof payload === 'object') {
+        const message = (payload as { message?: unknown }).message;
+        if (Array.isArray(message) && message.length > 0) return String(message[0]);
+        if (typeof message === 'string' && message.trim()) return message;
+      }
+
+      if (typeof error.message === 'string' && error.message.trim()) return error.message;
+      return `Error HTTP ${error.status}`;
+    }
+
+    if (error instanceof Error && error.message.trim()) return error.message;
+    return 'Ocurrio un error inesperado';
+  }
 
   private tryForceStatusVariants(
     id: string,
     statusVariants: string[],
     reason: string,
     index = 0,
+    lastError?: unknown,
   ): Observable<ProjectDto> {
     if (index >= statusVariants.length) {
-      return throwError(() => new Error('No se pudo aplicar force-status'));
+      return throwError(() => new Error(this.extractErrorMessage(lastError)));
     }
 
     const status = statusVariants[index];
@@ -88,7 +103,7 @@ export class ProjectService {
       status,
       reason,
     }).pipe(
-      catchError(() => this.tryForceStatusVariants(id, statusVariants, reason, index + 1)),
+      catchError((error) => this.tryForceStatusVariants(id, statusVariants, reason, index + 1, error)),
     );
   }
 
@@ -96,16 +111,79 @@ export class ProjectService {
     id: string,
     statusVariants: string[],
     index = 0,
+    lastError?: unknown,
   ): Observable<ProjectDto> {
     if (index >= statusVariants.length) {
-      return throwError(() => new Error('No se pudo aplicar cambio de estado'));
+      return throwError(() => new Error(this.extractErrorMessage(lastError)));
     }
 
     const status = statusVariants[index];
     return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/${id}/status`, {
       status,
     }).pipe(
-      catchError(() => this.tryChangeStatusVariants(id, statusVariants, index + 1)),
+      catchError((error) => this.tryChangeStatusVariants(id, statusVariants, index + 1, error)),
+    );
+  }
+
+  private archiveViaLegacyEndpoint(id: string, reason: string): Observable<ProjectDto> {
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/archive`, {
+      id,
+      reason,
+    }).pipe(
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/archive`, {
+          projectId: id,
+          reason,
+        }),
+      ),
+    );
+  }
+
+  private unarchiveViaLegacyEndpoint(id: string, reason: string): Observable<ProjectDto> {
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/unarchive`, {
+      id,
+      reason,
+    }).pipe(
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/unarchive`, {
+          projectId: id,
+          reason,
+        }),
+      ),
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/restore`, {
+          id,
+          reason,
+        }),
+      ),
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/restore`, {
+          projectId: id,
+          reason,
+        }),
+      ),
+    );
+  }
+
+  private forceStatusViaLegacyEndpoint(id: string, statuses: string[], reason: string, index = 0): Observable<ProjectDto> {
+    if (index >= statuses.length) {
+      return throwError(() => new Error('No se pudo aplicar force-status legacy'));
+    }
+
+    const status = statuses[index];
+    return this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/force`, {
+      id,
+      status,
+      reason,
+    }).pipe(
+      catchError(() =>
+        this.http.patch<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/admin/force`, {
+          projectId: id,
+          status,
+          reason,
+        }),
+      ),
+      catchError(() => this.forceStatusViaLegacyEndpoint(id, statuses, reason, index + 1)),
     );
   }
 
@@ -119,8 +197,6 @@ export class ProjectService {
       .pipe(catchError(this.handleError));
   }
 
-
-
   uploadProject(title: string, description: string, file?: File | null): Observable<ProjectDto> {
     const formData = new FormData();
     formData.append('title', title);
@@ -129,7 +205,6 @@ export class ProjectService {
       formData.append('file', file);
     }
 
-    // Generar un UUID para el proyecto
     const projectId = crypto.randomUUID();
     return this.http.post<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.create(projectId)}`, formData)
       .pipe(catchError(this.handleError));
@@ -187,8 +262,6 @@ export class ProjectService {
       .pipe(catchError(this.handleError));
   }
 
-
-
   getProjectHistory(projectId: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}${API_ROUTES.projects.base}/${projectId}/activity`)
       .pipe(catchError(this.handleError));
@@ -196,11 +269,10 @@ export class ProjectService {
 
   /**
    * POST /projects/join
-   * Unirse a un curso/proyecto por código de acceso.
+   * Unirse a un curso/proyecto por codigo de acceso.
    */
   joinByCode(code: string): Observable<ProjectDto> {
     return this.http.post<ProjectDto>(`${this.apiUrl}${API_ROUTES.projects.base}/join`, { code })
       .pipe(catchError(this.handleError));
   }
 }
-
