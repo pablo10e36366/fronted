@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Observable, catchError, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface User {
@@ -87,6 +87,29 @@ export class AdminService {
 
     constructor(private http: HttpClient) { }
 
+    private shouldUseReadFallback(error: HttpErrorResponse): boolean {
+        if (error.status === 401 || error.status === 403) return false;
+        return error.status === 400 || error.status >= 500;
+    }
+
+    private emptyDashboardStats(): AdminDashboardStats {
+        return {
+            kpis: {
+                activeUsers: 0,
+                activeProjects: 0,
+                inReview: 0,
+                storageUsed: 0,
+            },
+            projectStats: {
+                draft: 0,
+                inProgress: 0,
+                inReview: 0,
+                completed: 0,
+            },
+            alerts: [],
+        };
+    }
+
     // --- USERS ---
 
     getUsers(status?: 'active' | 'blocked', roleId?: number, search?: string): Observable<User[]> {
@@ -128,7 +151,15 @@ export class AdminService {
     // --- DASHBOARD ---
 
     getDashboardStats(): Observable<AdminDashboardStats> {
-        return this.http.get<AdminDashboardStats>(`${this.apiUrl}/dashboard-stats`);
+        return this.http.get<AdminDashboardStats>(`${this.apiUrl}/dashboard-stats`).pipe(
+            catchError((error: HttpErrorResponse) => {
+                if (!this.shouldUseReadFallback(error)) {
+                    return throwError(() => error);
+                }
+
+                return of(this.emptyDashboardStats());
+            }),
+        );
     }
 
     // --- ROLE UPGRADE REQUESTS ---
