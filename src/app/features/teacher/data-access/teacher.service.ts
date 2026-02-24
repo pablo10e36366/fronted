@@ -29,6 +29,10 @@ export class TeacherService {
     return error.status === 400 || error.status >= 500;
   }
 
+  private emptyListMeta(page = 1, page_size = 10) {
+    return { page, page_size, total: 0 };
+  }
+
   getBadges(): Observable<TeacherApiResponse<TeacherBadges>> {
     return this.http.get<TeacherApiResponse<TeacherBadges>>(`${this.apiUrl}${API_ROUTES.teacher.badges}`);
   }
@@ -86,6 +90,17 @@ export class TeacherService {
     return this.http.get<TeacherApiResponse<{ items: TeacherCourse[] }>>(
       `${this.apiUrl}${API_ROUTES.teacher.courses}`,
       { params: httpParams },
+    ).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (!this.shouldUseReadFallback(error)) {
+          return throwError(() => error);
+        }
+
+        return of({
+          data: { items: [] },
+          meta: this.emptyListMeta(params?.page || 1, params?.page_size || 10),
+        });
+      }),
     );
   }
 
