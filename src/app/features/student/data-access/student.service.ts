@@ -32,6 +32,50 @@ export class StudentService {
     return { page, page_size, total: 0 };
   }
 
+  private pickDate(...values: Array<unknown>): string | null {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim()) return value;
+    }
+    return null;
+  }
+
+  private normalizeAssignmentStatus(status: unknown): 'PENDIENTE' | 'ENTREGADO' | 'REVISADO' {
+    const normalized = String(status || '').trim().toUpperCase();
+    if (normalized === 'ENTREGADO' || normalized === 'DELIVERED') return 'ENTREGADO';
+    if (normalized === 'REVISADO' || normalized === 'REVIEWED') return 'REVISADO';
+    return 'PENDIENTE';
+  }
+
+  private normalizeAssignmentItem(raw: any) {
+    return {
+      id: String(raw?.id || ''),
+      course_id: String(raw?.course_id || raw?.courseId || ''),
+      course_name: raw?.course_name ?? raw?.courseName ?? null,
+      status: this.normalizeAssignmentStatus(raw?.status),
+      created_at: this.pickDate(raw?.created_at, raw?.createdAt),
+      submitted_at: this.pickDate(raw?.submitted_at, raw?.submittedAt),
+      due_at: this.pickDate(
+        raw?.due_at,
+        raw?.dueAt,
+        raw?.deadline,
+        raw?.due_date,
+        raw?.dueDate,
+        raw?.can_submit_until,
+        raw?.canSubmitUntil,
+        raw?.milestone_deadline,
+        raw?.milestoneDeadline,
+      ),
+      is_late: Boolean(raw?.is_late ?? raw?.isLate ?? false),
+      feedback: raw?.feedback ?? null,
+      review_outcome: raw?.review_outcome ?? raw?.reviewOutcome ?? null,
+      milestone_id: raw?.milestone_id ?? raw?.milestoneId ?? null,
+      milestone_title: raw?.milestone_title ?? raw?.milestoneTitle ?? null,
+      activity_folder_id: raw?.activity_folder_id ?? raw?.activityFolderId ?? null,
+      evidence_id: raw?.evidence_id ?? raw?.evidenceId ?? null,
+      evidence_title: raw?.evidence_title ?? raw?.evidenceTitle ?? null,
+    };
+  }
+
   getCourses(params?: {
     page?: number;
     page_size?: number;
@@ -111,6 +155,13 @@ export class StudentService {
       `${this.apiUrl}${API_ROUTES.student.assignments}`,
       { params: httpParams },
     ).pipe(
+      map((res) => ({
+        ...res,
+        data: {
+          ...(res.data || { items: [] }),
+          items: (res.data?.items || []).map((item) => this.normalizeAssignmentItem(item)),
+        },
+      })),
       catchError((error: HttpErrorResponse) => {
         if (!this.shouldUseReadFallback(error)) {
           return throwError(() => error);
