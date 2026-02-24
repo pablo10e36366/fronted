@@ -1,10 +1,14 @@
-﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { catchError, forkJoin, of } from 'rxjs';
+
 import {
   AdminDashboardAlert,
   AdminDashboardStats,
   AdminService,
 } from '../../../../core/data-access/admin.service';
+import { ProjectService } from '../../../../core/data-access/project.service';
+import type { ProjectDto } from '../../../../core/models/project.models';
 
 @Component({
   selector: 'app-admin-home',
@@ -18,7 +22,7 @@ import {
       <div class="kpi-grid" *ngIf="!loading">
         <div class="kpi-card users">
           <div class="icon">👥</div>
-          <div class="value">{{ stats.kpis.activeUsers }}</div>
+          <div class="value">{{ activeUsersCount }}</div>
           <div class="label">Usuarios Activos</div>
         </div>
         <div class="kpi-card projects">
@@ -247,24 +251,16 @@ export class AdminHomeComponent implements OnInit {
     projectStats: { draft: 0, inProgress: 0, inReview: 0, completed: 0 },
     alerts: [],
   };
+  activeUsersCount = 0;
+  activeCoursesCount = 0;
 
   loading = true;
   errorMessage = '';
 
-  constructor(private adminService: AdminService) {}
-
-  get activeCoursesCount(): number {
-    const kpiValue = Number(this.stats?.kpis?.activeProjects || 0);
-    if (Number.isFinite(kpiValue) && kpiValue > 0) return kpiValue;
-
-    const stats = this.stats?.projectStats;
-    const total =
-      Number(stats?.draft || 0) +
-      Number(stats?.inProgress || 0) +
-      Number(stats?.inReview || 0) +
-      Number(stats?.completed || 0);
-    return Number.isFinite(total) ? total : 0;
-  }
+  constructor(
+    private adminService: AdminService,
+    private projectService: ProjectService,
+  ) {}
 
   ngOnInit(): void {
     this.loadDashboardStats();
@@ -274,11 +270,34 @@ export class AdminHomeComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.adminService.getDashboardStats().subscribe({
-      next: (data: AdminDashboardStats) => {
+    forkJoin({
+      dashboard: this.adminService.getDashboardStats(),
+      users: this.adminService.getUsers().pipe(catchError(() => of([]))),
+      projects: this.projectService.getAllProjects().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ dashboard, users, projects }) => {
+        const safeUsers = Array.isArray(users) ? users : [];
+        const safeProjects = Array.isArray(projects) ? projects : [];
+
+        const derivedActiveUsers = safeUsers.length
+          ? safeUsers.filter((u) => (u as { isActive?: boolean })?.isActive !== false).length
+          : Number(dashboard?.kpis?.activeUsers || 0);
+
+        const derivedActiveCourses = safeProjects.length
+          ? this.countActiveCourses(safeProjects)
+          : this.getActiveCoursesFromStats(dashboard);
+
+        this.activeUsersCount = this.safeNonNegative(derivedActiveUsers);
+        this.activeCoursesCount = this.safeNonNegative(derivedActiveCourses);
+
         this.stats = {
-          ...data,
-          alerts: [...(data.alerts || [])].sort((a, b) => a.priority - b.priority),
+          ...dashboard,
+          kpis: {
+            ...dashboard.kpis,
+            activeUsers: this.activeUsersCount,
+            activeProjects: this.activeCoursesCount,
+          },
+          alerts: [...(dashboard.alerts || [])].sort((a, b) => a.priority - b.priority),
         };
         this.loading = false;
       },
@@ -289,6 +308,8 @@ export class AdminHomeComponent implements OnInit {
             projectStats: { draft: 0, inProgress: 0, inReview: 0, completed: 0 },
             alerts: [],
           };
+          this.activeUsersCount = 0;
+          this.activeCoursesCount = 0;
           this.errorMessage = '';
           this.loading = false;
           return;
@@ -298,6 +319,32 @@ export class AdminHomeComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  private safeNonNegative(value: unknown): number {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return 0;
+    return Math.round(num);
+  }
+
+  private getActiveCoursesFromStats(data: AdminDashboardStats): number {
+    const fromKpi = this.safeNonNegative(data?.kpis?.activeProjects);
+    if (fromKpi > 0) return fromKpi;
+
+    const p = data?.projectStats;
+    return this.safeNonNegative(
+      Number(p?.draft || 0) +
+      Number(p?.inProgress || 0) +
+      Number(p?.inReview || 0) +
+      Number(p?.completed || 0),
+    );
+  }
+
+  private countActiveCourses(projects: ProjectDto[]): number {
+    return projects.filter((project) => {
+      const status = String(project?.status || '').trim().toLowerCase();
+      return status !== 'archived' && status !== 'archivado' && status !== 'closed';
+    }).length;
   }
 
   private shouldSuppressReadError(err: unknown): boolean {
