@@ -35,7 +35,7 @@ type AdminTab = 'dashboard' | 'users' | 'projects' | 'settings';
           Usuarios
         </button>
         <button class="tab" [class.active]="activeTab === 'projects'" (click)="setActiveTab('projects')">
-          Proyectos
+          Cursos
         </button>
         <button class="tab" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
           Configuracion
@@ -165,7 +165,7 @@ export class AdminComponent {
     const titles: Record<AdminTab, string> = {
       dashboard: 'Dashboard General',
       users: 'Gestion de Usuarios',
-      projects: 'Control de Proyectos',
+      projects: 'Gestion de Cursos',
       settings: 'Configuracion del Sistema',
     };
 
