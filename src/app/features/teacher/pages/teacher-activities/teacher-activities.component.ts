@@ -162,7 +162,13 @@ export class TeacherActivitiesComponent implements OnInit, OnDestroy {
         next: (res) => {
           const folderId = res?.data?.folder_id;
           const milestoneId = res?.data?.milestone_id;
-          const deadlineLabel = this.formatDeadlineLabel(res?.data?.deadline);
+          const responseDeadline =
+            res?.data?.deadline ??
+            (res?.data as any)?.due_at ??
+            (res?.data as any)?.dueAt ??
+            (res?.data as any)?.due_date ??
+            null;
+          const deadlineLabel = this.formatDeadlineLabel(responseDeadline);
 
           if (this.activityType === 'FILE' && this.activityFile && folderId) {
             this.evidenceApiService

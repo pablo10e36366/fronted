@@ -35,6 +35,12 @@ export class StudentService {
   private pickDate(...values: Array<unknown>): string | null {
     for (const value of values) {
       if (typeof value === 'string' && value.trim()) return value;
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return new Date(value).toISOString();
+      }
+      if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value.toISOString();
+      }
     }
     return null;
   }
@@ -55,15 +61,29 @@ export class StudentService {
       created_at: this.pickDate(raw?.created_at, raw?.createdAt),
       submitted_at: this.pickDate(raw?.submitted_at, raw?.submittedAt),
       due_at: this.pickDate(
+        raw?.a_deadline,
+        raw?.assignment_deadline,
+        raw?.assignmentDueAt,
         raw?.due_at,
         raw?.dueAt,
         raw?.deadline,
         raw?.due_date,
         raw?.dueDate,
+        raw?.milestone_due_at,
+        raw?.milestone_due_date,
+        raw?.milestone_dueDate,
+        raw?.milestoneDueAt,
+        raw?.milestoneDueDate,
         raw?.can_submit_until,
         raw?.canSubmitUntil,
         raw?.milestone_deadline,
         raw?.milestoneDeadline,
+        raw?.milestone?.deadline,
+        raw?.milestone?.due_at,
+        raw?.milestone?.dueAt,
+        raw?.activity?.deadline,
+        raw?.activity?.due_at,
+        raw?.activity?.dueAt,
       ),
       is_late: Boolean(raw?.is_late ?? raw?.isLate ?? false),
       feedback: raw?.feedback ?? null,

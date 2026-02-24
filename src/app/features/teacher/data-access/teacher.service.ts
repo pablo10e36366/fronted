@@ -211,6 +211,24 @@ export class TeacherService {
       deadline?: string | null;
     }>
   > {
+    const payload: {
+      title: string;
+      description?: string | null;
+      type?: string | null;
+      deadline?: string | null;
+      due_at?: string | null;
+      dueAt?: string | null;
+      due_date?: string | null;
+    } = {
+      title: body.title,
+      description: body.description,
+      type: body.type,
+      deadline: body.deadline ?? null,
+      due_at: body.deadline ?? null,
+      dueAt: body.deadline ?? null,
+      due_date: body.deadline ?? null,
+    };
+
     return this.http.post<
       TeacherApiResponse<{
         milestone_id: string;
@@ -220,7 +238,7 @@ export class TeacherService {
       }>
     >(
       `${this.apiUrl}${API_ROUTES.teacher.createCourseActivity(courseId)}`,
-      body,
+      payload,
     );
   }
 
